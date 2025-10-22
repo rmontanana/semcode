@@ -23,7 +23,12 @@ class LLMProviderSettings(BaseModel):
 class AppSettings(BaseSettings):
     """Project-wide settings loaded from env or .env files."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="SEMCOD_", env_nested_delimiter="__")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="SEMCOD_",
+        env_nested_delimiter="__",
+        extra="allow",
+    )
 
     workspace_root: Path = Path("./workspace")
     milvus_uri: str = "http://localhost:19530"
@@ -32,12 +37,6 @@ class AppSettings(BaseSettings):
     embedding_dimension: int = 1536
     default_llm: str = "gpt-4o"
     llm_endpoints: List[LLMProviderSettings] = []
-
-    class Config:
-        """Backward compatibility for Pydantic v1 style override."""
-
-        env_file = ".env"
-        env_prefix = "SEMCOD_"
 
 
 settings = AppSettings()

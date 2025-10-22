@@ -83,28 +83,16 @@ class TreeSitterChunker:
         if not language_key:
             raise ValueError(f"Unsupported language for chunking: {language}")
 
-        parser = self._get_parser(language_key)
-        source_bytes = path.read_bytes()
-        tree = parser.parse(source_bytes)
-        root_node = tree.root_node
-
-        text = source_bytes.decode("utf-8", errors="ignore")
-        lines = text.splitlines()
-        chunk = CodeChunk(
-            path=path,
-            language=language,
-            start_line=1,
-            end_line=len(lines),
-            content=text,
-            symbol=self._detect_primary_symbol(root_node),
-        )
-        log.info(
-            "chunk_created",
-            file=str(path),
-            lines=len(lines),
-            symbol=chunk.symbol,
-        )
-        return [chunk]
+        try:
+            return [self._chunk_with_tree_sitter(path, language, language_key)]
+        except Exception as exc:  # pragma: no cover - exercised when grammars missing
+            log.warning(
+                "tree_sitter_chunk_fallback",
+                file=str(path),
+                language=language,
+                error=str(exc),
+            )
+            return [self._build_fallback_chunk(path, language)]
 
     @staticmethod
     def _detect_primary_symbol(root_node: Optional["Node"]) -> Optional[str]:
@@ -148,3 +136,48 @@ class TreeSitterChunker:
         if suffix in {".cpp", ".cxx", ".cc", ".hpp", ".hxx", ".hh"}:
             return "cpp"
         return None
+
+    def _chunk_with_tree_sitter(self, path: Path, language: str, language_key: str) -> CodeChunk:
+        parser = self._get_parser(language_key)
+        source_bytes = path.read_bytes()
+        text = source_bytes.decode("utf-8", errors="ignore")
+        lines = text.splitlines()
+        tree = parser.parse(source_bytes)
+        root_node = tree.root_node
+
+        chunk = CodeChunk(
+            path=path,
+            language=language,
+            start_line=1,
+            end_line=len(lines),
+            content=text,
+            symbol=self._detect_primary_symbol(root_node),
+        )
+        log.info(
+            "chunk_created",
+            file=str(path),
+            lines=len(lines),
+            symbol=chunk.symbol,
+            mode="tree_sitter",
+        )
+        return chunk
+
+    def _build_fallback_chunk(self, path: Path, language: str) -> CodeChunk:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        lines = text.splitlines()
+        chunk = CodeChunk(
+            path=path,
+            language=language,
+            start_line=1,
+            end_line=len(lines),
+            content=text,
+            symbol=None,
+        )
+        log.info(
+            "chunk_created",
+            file=str(path),
+            lines=len(lines),
+            symbol=chunk.symbol,
+            mode="fallback",
+        )
+        return chunk
