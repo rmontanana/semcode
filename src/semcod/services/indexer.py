@@ -1,0 +1,107 @@
+"""
+Repository indexing workflow orchestration.
+"""
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
+
+from ..chunking import CodeChunk
+from ..embeddings import EmbeddingPayload, EmbeddingProviderFactory
+from ..ingestion import RepositoryIngestionManager, RepositoryMetadata
+from ..logger import get_logger
+from ..storage import MilvusVectorStore, RepositoryRecord, RepositoryRegistry
+
+log = get_logger(__name__)
+
+
+@dataclass
+class IndexingResult:
+    repository: RepositoryMetadata
+    chunk_count: int
+    embeddings_indexed: int
+    milvus_collection: str
+
+
+class IndexerService:
+    """High-level service that chains ingestion, chunking, embedding, and storage."""
+
+    def __init__(
+        self,
+        ingestion_manager: Optional[RepositoryIngestionManager] = None,
+        registry: Optional[RepositoryRegistry] = None,
+        vector_store: Optional[MilvusVectorStore] = None,
+        auto_connect: bool = True,
+    ) -> None:
+        self.ingestion_manager = ingestion_manager or RepositoryIngestionManager()
+        self.registry = registry or RepositoryRegistry()
+        self.vector_store = vector_store or MilvusVectorStore()
+        self.embedding_client = EmbeddingProviderFactory.create()
+        self._connected = False
+        if auto_connect:
+            self._connected = self._ensure_connection()
+
+    def _ensure_connection(self) -> bool:
+        try:
+            self.vector_store.connect()
+            return True
+        except Exception as exc:  # pragma: no cover - requires Milvus env
+            log.warning("milvus_connection_failed", error=str(exc))
+            return False
+
+    def index_repository(self, path: Path, force: bool = False) -> IndexingResult:
+        """Execute full indexing workflow for the repository at `path`."""
+        repo_metadata = self.ingestion_manager.ingest_local_path(path, force=force)
+        chunks = self.ingestion_manager.chunk_repository(repo_metadata)
+        payloads = self._build_payloads(repo_metadata, chunks)
+
+        if self._connected or self._ensure_connection():
+            try:
+                self.vector_store.upsert_embeddings(payloads)
+            except Exception as exc:  # pragma: no cover - requires Milvus env
+                log.error("milvus_upsert_failed", error=str(exc))
+        else:  # pragma: no cover - development fallback
+            log.warning("milvus_unavailable_skip_upsert")
+
+        record = RepositoryRecord(
+            name=repo_metadata.name,
+            languages=repo_metadata.languages,
+            chunk_count=len(chunks),
+        )
+        self.registry.register(record)
+        return IndexingResult(
+            repository=repo_metadata,
+            chunk_count=len(chunks),
+            embeddings_indexed=len(payloads),
+            milvus_collection=self.vector_store.collection_name,
+        )
+
+    def _build_payloads(self, metadata: RepositoryMetadata, chunks: List[CodeChunk]) -> List[EmbeddingPayload]:
+        contents = [chunk.content for chunk in chunks]
+        vectors = self.embedding_client.embed_documents(contents)
+        payloads: List[EmbeddingPayload] = []
+        for chunk, vector in zip(chunks, vectors):
+            chunk_id = self._make_chunk_id(metadata.name, chunk.path, chunk.start_line, chunk.end_line)
+            payloads.append(
+                EmbeddingPayload(
+                    id=chunk_id,
+                    text=chunk.content,
+                    vector=vector,
+                    metadata={
+                        "repo": metadata.name,
+                        "path": str(chunk.path.relative_to(metadata.path)),
+                        "language": chunk.language,
+                        "start_line": chunk.start_line,
+                        "end_line": chunk.end_line,
+                        "symbol": chunk.symbol,
+                    },
+                )
+            )
+        return payloads
+
+    @staticmethod
+    def _make_chunk_id(repo: str, path: Path, start: int, end: int) -> str:
+        digest = hashlib.md5(f"{repo}:{path}:{start}:{end}".encode("utf-8")).hexdigest()
+        return digest
