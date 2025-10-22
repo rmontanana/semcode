@@ -42,10 +42,11 @@ class EmbeddingProviderFactory:
     """Factory that returns embedding clients based on configuration."""
 
     @staticmethod
-    def create(provider: str | None = None) -> EmbeddingAdapter:
-        provider_name = (provider or settings.default_llm).lower()
-        if "gpt" in provider_name or provider_name.startswith("openai"):
-            log.info("initializing_openai_embeddings", model=provider_name)
-            return OpenAIEmbeddings(model=provider_name)
+    def create(provider: str | None = None, model: str | None = None) -> EmbeddingAdapter:
+        provider_name = (provider or settings.embedding_provider).lower()
+        if provider_name.startswith("openai"):
+            embed_model = model or settings.embedding_model
+            log.info("initializing_openai_embeddings", model=embed_model)
+            return OpenAIEmbeddings(model=embed_model)
 
         raise NotImplementedError(f"Embedding provider not yet supported: {provider_name}")

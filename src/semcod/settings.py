@@ -34,7 +34,9 @@ class AppSettings(BaseSettings):
     milvus_uri: str = "http://localhost:19530"
     milvus_username: Optional[str] = None
     milvus_password: Optional[str] = None
-    embedding_dimension: int = 1536
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dimension: int = 3072
     default_llm: str = "gpt-4o"
     llm_endpoints: List[LLMProviderSettings] = []
 

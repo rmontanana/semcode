@@ -53,6 +53,7 @@ src/semcod/
 4. Copy `.env.example` and configure provider credentials. Minimum variables:
    - `SEMCOD_WORKSPACE_ROOT` – location to mirror repositories.
    - `OPENAI_API_KEY` (or alternative provider keys supported by LangChain).
+   - `SEMCOD_EMBEDDING_MODEL` – defaults to `text-embedding-3-large`; align with Milvus dimension.
    - `SEMCOD_MILVUS_URI` plus optional username/password for Milvus.
 
 ### Milvus
