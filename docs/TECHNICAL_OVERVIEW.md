@@ -119,6 +119,7 @@ FastAPI is run via Uvicorn (`uvicorn.run`). Authentication, rate limits, and bac
 | `SEMCOD_EMBEDDING_PROVIDER` | Optional | Embedding vendor identifier (default `openai`). |
 | `SEMCOD_EMBEDDING_MODEL` | Optional | Embedding model name (default `text-embedding-3-large`). |
 | `SEMCOD_EMBEDDING_DIMENSION` | Optional | Dimension for embeddings (default `3072`). Must match provider output. |
+| `SEMCOD_EMBEDDING_USE_TIKTOKEN` | Optional | When `false`, disables token pre-processing (required for some OpenAI-compatible servers such as LM Studio). |
 | `SEMCOD_DEFAULT_LLM` | Optional | Model alias used by LangChain (`"gpt-4o"` by default). |
 | Embedding provider keys | `OPENAI_API_KEY`, `COHERE_API_KEY`, etc. | Consumed by LangChain + context7 wrappers. `AppSettings` allows extra env values. |
 
@@ -183,6 +184,7 @@ Optional future integrations (placeholders in project plan):
 - **Tree-sitter grammars**: If `tree-sitter-languages` is missing or incompatible, the chunker logs a warning and falls back to full-file chunks to keep pipelines running.
 - **Embedding dimensions**: Ensure that the configured embedding provider matches Milvus collection dimensions. For OpenAI’s `text-embedding-3-large`, dimension is 3072 (default value for `SEMCOD_EMBEDDING_DIMENSION`).
 - **Local models**: When using llama.cpp, point `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` / `SEMCOD_RAG_LLAMACPP_MODEL_PATH` to your GGUF files and align ctx / thread counts with your hardware. LM Studio integrations use the OpenAI-compatible HTTP interface (`SEMCOD_*_API_BASE`).
+- **Tokenizer warnings**: Some local stacks emit Hugging Face tokenizer fork warnings. Set `TOKENIZERS_PARALLELISM=false` if the log noise is problematic.
 - **Context7 integration**: When extending the system, use context7 docs to fetch LangChain / Tree-sitter references as part of the development workflow.
 - **Extensibility roadmap**: The README tracks future phases (auth, async tasks, advanced UI, integration tests, CI).
 

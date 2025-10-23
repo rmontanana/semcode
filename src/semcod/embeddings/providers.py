@@ -7,7 +7,7 @@ different vendors by configuration.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Protocol
+from typing import Any, Iterable, List, Protocol
 
 from langchain.embeddings.base import Embeddings
 
@@ -49,11 +49,16 @@ class EmbeddingProviderFactory:
 
             embed_model = model or settings.embedding_model
             log.info("initializing_openai_embeddings", model=embed_model)
-            kwargs: dict = {"model": embed_model}
+            kwargs: dict[str, Any] = {
+                "model": embed_model,
+                "encoding_format": "float",
+            }
             if settings.embedding_api_base:
                 kwargs["base_url"] = settings.embedding_api_base
             if settings.embedding_api_key:
                 kwargs["api_key"] = settings.embedding_api_key
+            if provider_name != "openai" or not settings.embedding_use_tiktoken:
+                kwargs["tiktoken_enabled"] = False
             return OpenAIEmbeddings(**kwargs)
 
         if provider_name in {"llamacpp", "llama.cpp"}:

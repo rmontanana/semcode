@@ -65,7 +65,9 @@ Ensure `tree-sitter-languages` is installed (included in required dependencies).
 ### Choosing Embedding & LLM Providers
 - `SEMCOD_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
   - **OpenAI / LM Studio**: supply `SEMCOD_EMBEDDING_MODEL` and optionally `SEMCOD_EMBEDDING_API_BASE` (e.g., `http://localhost:1234/v1`) plus `SEMCOD_EMBEDDING_API_KEY`. LM Studio exposes an OpenAI-compatible API; set the key to any non-empty string (e.g., `lm-studio`).
+    - LM Studio and other OpenAI-compatible gateways may require `SEMCOD_EMBEDDING_USE_TIKTOKEN=false` so the client sends raw text rather than pre-tokenized input.
   - **llama.cpp**: set `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` to the GGUF file and adjust ctx/threads/batch variables as needed.
+  - Set `TOKENIZERS_PARALLELISM=false` when using Hugging Face-backed pipelines (e.g., llama.cpp bindings) to silence tokenizer fork warnings.
 - `SEMCOD_RAG_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
   - **OpenAI / LM Studio**: configure `SEMCOD_RAG_MODEL`, `SEMCOD_RAG_API_BASE`, `SEMCOD_RAG_API_KEY`, and optional `SEMCOD_RAG_TEMPERATURE`.
   - **llama.cpp**: set `SEMCOD_RAG_LLAMACPP_MODEL_PATH` (or reuse the embedding path), ctx/threads, and optionally temperature.

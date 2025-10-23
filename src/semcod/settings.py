@@ -39,6 +39,7 @@ class AppSettings(BaseSettings):
     embedding_dimension: int = 3072
     embedding_api_base: Optional[str] = None
     embedding_api_key: Optional[str] = None
+    embedding_use_tiktoken: bool = True
     embedding_llamacpp_model_path: Optional[Path] = None
     embedding_llamacpp_n_ctx: int = 2048
     embedding_llamacpp_n_threads: int = 4

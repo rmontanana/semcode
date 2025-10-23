@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 from tree_sitter import Language, Parser  # type: ignore[import]
 
@@ -60,6 +60,8 @@ class TreeSitterChunker:
     """Tree-sitter powered chunker for supported languages."""
 
     SUPPORTED_LANGUAGES = {"python": "python", "cpp": "cpp"}
+    MAX_LINES_PER_CHUNK = 200
+    MAX_CHARS_PER_CHUNK = 6000
 
     def __init__(self) -> None:
         self.parsers: dict[str, Parser] = {}
@@ -74,17 +76,17 @@ class TreeSitterChunker:
 
     def chunk_file(self, path: Path, language: str) -> List[CodeChunk]:
         """
-        Produce naive chunks for the given file.
+        Produce chunks for the given file with size safeguards.
 
-        The implementation currently returns entire file as a single chunk.
-        Future phases will introduce AST-guided segmentation.
+        Tree-sitter is used when available; otherwise plain text segmentation
+        ensures chunks stay within the configured line/character limits.
         """
         language_key = self.SUPPORTED_LANGUAGES.get(language.lower())
         if not language_key:
             raise ValueError(f"Unsupported language for chunking: {language}")
 
         try:
-            return [self._chunk_with_tree_sitter(path, language, language_key)]
+            return self._chunk_with_tree_sitter(path, language, language_key)
         except Exception as exc:  # pragma: no cover - exercised when grammars missing
             log.warning(
                 "tree_sitter_chunk_fallback",
@@ -92,7 +94,7 @@ class TreeSitterChunker:
                 language=language,
                 error=str(exc),
             )
-            return [self._build_fallback_chunk(path, language)]
+            return self._build_fallback_chunks(path, language)
 
     @staticmethod
     def _detect_primary_symbol(root_node: Optional["Node"]) -> Optional[str]:
@@ -137,7 +139,7 @@ class TreeSitterChunker:
             return "cpp"
         return None
 
-    def _chunk_with_tree_sitter(self, path: Path, language: str, language_key: str) -> CodeChunk:
+    def _chunk_with_tree_sitter(self, path: Path, language: str, language_key: str) -> List[CodeChunk]:
         parser = self._get_parser(language_key)
         source_bytes = path.read_bytes()
         text = source_bytes.decode("utf-8", errors="ignore")
@@ -145,39 +147,103 @@ class TreeSitterChunker:
         tree = parser.parse(source_bytes)
         root_node = tree.root_node
 
-        chunk = CodeChunk(
-            path=path,
-            language=language,
-            start_line=1,
-            end_line=len(lines),
-            content=text,
-            symbol=self._detect_primary_symbol(root_node),
-        )
-        log.info(
-            "chunk_created",
-            file=str(path),
-            lines=len(lines),
-            symbol=chunk.symbol,
-            mode="tree_sitter",
-        )
-        return chunk
+        segments = self._segment_lines(lines)
+        primary_symbol = self._detect_primary_symbol(root_node)
+        chunks: List[CodeChunk] = []
+        for idx, (start_idx, end_idx) in enumerate(segments):
+            segment_text = "\n".join(lines[start_idx:end_idx])
+            if not segment_text.strip():
+                continue
+            piece_start_line = start_idx + 1
+            pieces = self._split_text_by_chars(segment_text)
+            max_end_line = start_idx + (end_idx - start_idx)
+            for piece_idx, piece in enumerate(pieces):
+                if not piece:
+                    continue
+                newline_count = piece.count("\n")
+                piece_end_line = piece_start_line + newline_count
+                if piece_end_line > max_end_line:
+                    piece_end_line = max_end_line
+                chunk = CodeChunk(
+                    path=path,
+                    language=language,
+                    start_line=piece_start_line,
+                    end_line=max(piece_start_line, piece_end_line),
+                    content=piece,
+                    symbol=primary_symbol if idx == 0 and piece_idx == 0 else None,
+                )
+                log.info(
+                    "chunk_created",
+                    file=str(path),
+                    lines=chunk.end_line - chunk.start_line + 1,
+                    symbol=chunk.symbol,
+                    mode="tree_sitter",
+                )
+                chunks.append(chunk)
+                piece_start_line = min(piece_end_line + 1, max_end_line + 1)
+        return chunks
 
-    def _build_fallback_chunk(self, path: Path, language: str) -> CodeChunk:
+    def _build_fallback_chunks(self, path: Path, language: str) -> List[CodeChunk]:
         text = path.read_text(encoding="utf-8", errors="ignore")
         lines = text.splitlines()
-        chunk = CodeChunk(
-            path=path,
-            language=language,
-            start_line=1,
-            end_line=len(lines),
-            content=text,
-            symbol=None,
-        )
-        log.info(
-            "chunk_created",
-            file=str(path),
-            lines=len(lines),
-            symbol=chunk.symbol,
-            mode="fallback",
-        )
-        return chunk
+        segments = self._segment_lines(lines)
+        chunks: List[CodeChunk] = []
+        for start_idx, end_idx in segments:
+            segment_text = "\n".join(lines[start_idx:end_idx])
+            if not segment_text.strip():
+                continue
+            piece_start_line = start_idx + 1
+            max_end_line = start_idx + (end_idx - start_idx)
+            for piece in self._split_text_by_chars(segment_text):
+                if not piece:
+                    continue
+                newline_count = piece.count("\n")
+                piece_end_line = piece_start_line + newline_count
+                if piece_end_line > max_end_line:
+                    piece_end_line = max_end_line
+                chunk = CodeChunk(
+                    path=path,
+                    language=language,
+                    start_line=piece_start_line,
+                    end_line=max(piece_start_line, piece_end_line),
+                    content=piece,
+                    symbol=None,
+                )
+                log.info(
+                    "chunk_created",
+                    file=str(path),
+                    lines=chunk.end_line - chunk.start_line + 1,
+                    symbol=chunk.symbol,
+                    mode="fallback",
+                )
+                chunks.append(chunk)
+                piece_start_line = min(piece_end_line + 1, max_end_line + 1)
+        return chunks
+
+    def _segment_lines(self, lines: Sequence[str]) -> List[Tuple[int, int]]:
+        if not lines:
+            return []
+
+        segments: List[Tuple[int, int]] = []
+        start = 0
+        char_count = 0
+        for idx, line in enumerate(lines):
+            line_len = len(line) + 1  # include newline
+            line_count = idx - start
+            if idx > start and (line_count >= self.MAX_LINES_PER_CHUNK or (char_count + line_len) > self.MAX_CHARS_PER_CHUNK):
+                segments.append((start, idx))
+                start = idx
+                char_count = 0
+            char_count += line_len
+
+        if start < len(lines):
+            segments.append((start, len(lines)))
+        return segments
+
+    def _split_text_by_chars(self, text: str) -> List[str]:
+        if not text:
+            return []
+        length = len(text)
+        if length <= self.MAX_CHARS_PER_CHUNK:
+            return [text]
+        return [text[i : i + self.MAX_CHARS_PER_CHUNK] for i in range(0, length, self.MAX_CHARS_PER_CHUNK)]
