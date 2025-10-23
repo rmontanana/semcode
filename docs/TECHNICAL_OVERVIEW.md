@@ -41,6 +41,7 @@ Key packages:
 ### 2.1 Repository Ingestion and Indexing
 1. **Workspace sync** (`RepositoryIngestionManager.ingest_sources`)  
    - Copies selected include directories into `SEMCOD_WORKSPACE_ROOT/<name>`.  
+   - Applies built-in ignore patterns (e.g., `.git`, `.venv`, `build*`, caches) plus any user-specified ones.  
    - Captures language hints by scanning file extensions.
 2. **Chunking** (`TreeSitterChunker`)  
    - Attempts to load prebuilt Tree-sitter grammars (`tree-sitter-languages`).  
@@ -79,7 +80,7 @@ These steps are coordinated by `IndexerService.index_repository`, used both by t
 
 | Command | Internal Flow | Notes |
 | ------- | ------------- | ----- |
-| `semcod ingest --name NAME --root ROOT --include a,b [--ignore x,y] [-y]` | Instantiates `IndexerService` → `index_repository` → ingestion + chunking + embedding + Milvus upsert → registry update. Prints a preview tree and supports directory include/ignore lists before copying. | Requires access to Milvus and embedding provider keys. |
+| `semcod ingest --name NAME --root ROOT --include a,b [--ignore x,y] [-y]` | Instantiates `IndexerService` → `index_repository` → ingestion + chunking + embedding + Milvus upsert → registry update. Prints a preview tree, applies default ignores (e.g., `.git`, `.venv`, `build*`), and accepts additional include/ignore lists before copying. | Requires access to Milvus and embedding provider keys. |
 | `semcod list` | Loads registry (`RepositoryRegistry.list`) and prints repository metadata. | Shows chunk counts, languages, revisions. |
 | `semcod workspace [--path NEW_PATH]` | Prints current workspace or updates `SEMCOD_WORKSPACE_ROOT`. | Setting change persists in env, not config file. |
 

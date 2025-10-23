@@ -77,13 +77,23 @@ Ensure `tree-sitter-languages` is installed (included in required dependencies).
 ```bash
 semcod ingest --name mdlp --root /repo --include src,tests         # copy selected folders, chunk, embed, upsert
 semcod ingest --name mdlp --root /repo --include src,tests \
-    --ignore vendor,venv                                           # skip third-party caches
+    --ignore vendor,venv                                           # append extra ignore patterns
 semcod ingest --name mdlp --root /repo --include src,tests -y       # bypass confirmation (non-interactive)
 semcod list                                                        # show ingested repositories + chunk stats
 semcod workspace --path ./new-workspace                            # change workspace location
 ```
 
-During `semcod ingest` the CLI prints a directory tree (depth=2) for each included folder so you can spot external dependencies before copying. Use `--ignore/-i` with a comma-separated list of folder names to exclude globally and `-y/--yes` to confirm automatically.
+`semcod ingest` requires two arguments:
+- `--name/-n`: logical label stored with every chunk and registry entry.
+- `--include/-I`: comma-separated folders (relative to `--root`, default `.`) copied into the workspace.
+
+Before copying, the CLI prints a depth-2 tree for each include path. A default ignore set is always applied (`.git`, `.svn`, `.vscode`, `.idea`, `__pycache__`, `node_modules`, `.venv`, `venv`, `build*`, `dist`, caches, etc.). Provide `--ignore/-i` with comma-separated patterns to append to that list, and `-y/--yes` to skip confirmation prompts.
+
+Optional flags:
+- `--root/-r`: change the root directory (default: current working directory).
+- `--ignore/-i`: additional comma-separated patterns appended to the default ignore list.
+- `--force`: overwrite an existing workspace copy.
+- `--yes/-y`: skip the confirmation prompt.
 
 ## API
 Run the service:

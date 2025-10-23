@@ -1,8 +1,10 @@
 """
 Command line interface for the semantic code search engine.
 """
+
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -17,10 +19,34 @@ app = typer.Typer(name="semcod", help="Semantic code search engine CLI.")
 configure_logging()
 log = get_logger(__name__)
 
+DEFAULT_IGNORE_PATTERNS: Sequence[str] = (
+    ".*",
+    ".git",
+    ".hg",
+    ".svn",
+    ".idea",
+    ".vscode",
+    ".DS_Store",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "build*",
+    "dist",
+    "tmp",
+    "vcpkg_installed",
+    "CMakeFiles",
+)
 
-def _render_directory_tree(root: Path, ignore: Sequence[str], max_depth: int = 2) -> str:
+
+def _render_directory_tree(
+    root: Path, ignore: Sequence[str], max_depth: int = 2
+) -> str:
     def should_skip(path: Path) -> bool:
-        return path.name in ignore
+        return any(fnmatch(path.name, pattern) for pattern in ignore)
 
     lines: list[str] = [str(root.resolve())]
 
@@ -54,7 +80,9 @@ def _render_directory_tree(root: Path, ignore: Sequence[str], max_depth: int = 2
 
 @app.command()
 def ingest(
-    name: str = typer.Option(..., "--name", "-n", help="Label used for the ingested repository."),
+    name: str = typer.Option(
+        ..., "--name", "-n", help="Label used for the ingested repository."
+    ),
     include: str = typer.Option(
         ...,
         "--include",
@@ -83,7 +111,8 @@ def ingest(
 ) -> None:
     """Ingest one or more subdirectories from a root path."""
     include_dirs = [name.strip() for name in include.split(",") if name.strip()]
-    ignore_dirs = [name.strip() for name in (ignore or "").split(",") if name.strip()]
+    user_ignore = [name.strip() for name in (ignore or "").split(",") if name.strip()]
+    ignore_dirs = list(dict.fromkeys(DEFAULT_IGNORE_PATTERNS + tuple(user_ignore)))
 
     if not root.exists():
         typer.echo(f"[ERROR] Root path not found: {root}")
@@ -141,7 +170,9 @@ def list_repos() -> None:
 
 
 @app.command()
-def workspace(path: Optional[Path] = typer.Option(None, "--path", help="Override workspace root.")) -> None:
+def workspace(
+    path: Optional[Path] = typer.Option(None, "--path", help="Override workspace root.")
+) -> None:
     """Show or update the current workspace location."""
     if path:
         settings.workspace_root = path

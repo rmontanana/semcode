@@ -7,6 +7,7 @@ and validates sources; subsequent phases will expand the functionality.
 """
 from __future__ import annotations
 
+import fnmatch
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,7 +60,7 @@ class RepositoryIngestionManager:
             resolved_sources.append(src.resolve())
 
         target = self.workspace / repo_name
-        ignore_set = {name.strip() for name in (ignore_dirs or []) if name.strip()}
+        ignore_patterns = tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
 
         if target.exists():
             if not force:
@@ -71,10 +72,10 @@ class RepositoryIngestionManager:
         target.mkdir(parents=True, exist_ok=True)
 
         def ignore_func(_src: str, names: Iterable[str]) -> List[str]:
-            return [name for name in names if name in ignore_set]
+            return [name for name in names if any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)]
 
         for src in resolved_sources:
-            if src.name in ignore_set:
+            if any(fnmatch.fnmatch(src.name, pattern) for pattern in ignore_patterns):
                 log.info("skip_ignored_source", source=str(src))
                 continue
 
@@ -87,9 +88,9 @@ class RepositoryIngestionManager:
                     "copying_directory",
                     source=str(src),
                     destination=str(destination),
-                    ignore=list(ignore_set) if ignore_set else None,
+                    ignore=list(ignore_patterns) if ignore_patterns else None,
                 )
-                shutil.copytree(src, destination, ignore=ignore_func if ignore_set else None)
+                shutil.copytree(src, destination, ignore=ignore_func if ignore_patterns else None)
             else:
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, destination)
