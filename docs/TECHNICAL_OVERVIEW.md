@@ -48,8 +48,9 @@ Key packages:
    - If grammars are missing, falls back to whole-file chunks.  
    - Hooks into `code2prompt` when available for heuristic refinement.
 3. **Embedding** (`EmbeddingProviderFactory`)  
-   - Uses LangChain to instantiate an embedding client.  
-   - Defaults to OpenAI embeddings (e.g., `text-embedding-3-large`) and trawls context7-managed credentials.  
+- Uses LangChain to instantiate an embedding client.  
+- Supports OpenAI/LM Studio (OpenAI-compatible) as well as local llama.cpp embeddings.  
+- Defaults to OpenAI embeddings (e.g., `text-embedding-3-large`) and trawls context7-managed credentials when available.  
    - Provider can be switched via settings (Cohere, Jina, HuggingFace).
 4. **Vector storage** (`MilvusVectorStore`)  
    - Connects to Milvus / Zilliz Cloud via PyMilvus.  
@@ -181,6 +182,7 @@ Optional future integrations (placeholders in project plan):
 - **Milvus availability**: The indexer will warn and skip vector upserts if it cannot connect to Milvus; ingestion still copies the repo and updates the registry.
 - **Tree-sitter grammars**: If `tree-sitter-languages` is missing or incompatible, the chunker logs a warning and falls back to full-file chunks to keep pipelines running.
 - **Embedding dimensions**: Ensure that the configured embedding provider matches Milvus collection dimensions. For OpenAI’s `text-embedding-3-large`, dimension is 3072 (default value for `SEMCOD_EMBEDDING_DIMENSION`).
+- **Local models**: When using llama.cpp, point `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` / `SEMCOD_RAG_LLAMACPP_MODEL_PATH` to your GGUF files and align ctx / thread counts with your hardware. LM Studio integrations use the OpenAI-compatible HTTP interface (`SEMCOD_*_API_BASE`).
 - **Context7 integration**: When extending the system, use context7 docs to fetch LangChain / Tree-sitter references as part of the development workflow.
 - **Extensibility roadmap**: The README tracks future phases (auth, async tasks, advanced UI, integration tests, CI).
 

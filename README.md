@@ -62,6 +62,15 @@ Run a local Milvus instance (Docker Compose or Zilliz Cloud). Update the `.env` 
 ### Tree-sitter Grammars
 Ensure `tree-sitter-languages` is installed (included in required dependencies). If you build custom grammars, update `TreeSitterChunker.SUPPORTED_LANGUAGES`.
 
+### Choosing Embedding & LLM Providers
+- `SEMCOD_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
+  - **OpenAI / LM Studio**: supply `SEMCOD_EMBEDDING_MODEL` and optionally `SEMCOD_EMBEDDING_API_BASE` (e.g., `http://localhost:1234/v1`) plus `SEMCOD_EMBEDDING_API_KEY`. LM Studio exposes an OpenAI-compatible API; set the key to any non-empty string (e.g., `lm-studio`).
+  - **llama.cpp**: set `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` to the GGUF file and adjust ctx/threads/batch variables as needed.
+- `SEMCOD_RAG_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
+  - **OpenAI / LM Studio**: configure `SEMCOD_RAG_MODEL`, `SEMCOD_RAG_API_BASE`, `SEMCOD_RAG_API_KEY`, and optional `SEMCOD_RAG_TEMPERATURE`.
+  - **llama.cpp**: set `SEMCOD_RAG_LLAMACPP_MODEL_PATH` (or reuse the embedding path), ctx/threads, and optionally temperature.
+- Ensure `SEMCOD_EMBEDDING_DIMENSION` matches the embedding model output (3072 for `text-embedding-3-large`; update if you switch providers).
+
 ## CLI Usage
 ```bash
 semcod ingest /path/to/your/repo --force   # clone/copy into workspace, chunk, embed, upsert

@@ -37,6 +37,20 @@ class AppSettings(BaseSettings):
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-large"
     embedding_dimension: int = 3072
+    embedding_api_base: Optional[str] = None
+    embedding_api_key: Optional[str] = None
+    embedding_llamacpp_model_path: Optional[Path] = None
+    embedding_llamacpp_n_ctx: int = 2048
+    embedding_llamacpp_n_threads: int = 4
+    embedding_llamacpp_batch_size: int = 256
+    rag_provider: str = "openai"
+    rag_model: str = "gpt-4o"
+    rag_api_base: Optional[str] = None
+    rag_api_key: Optional[str] = None
+    rag_temperature: float = 0.0
+    rag_llamacpp_model_path: Optional[Path] = None
+    rag_llamacpp_n_ctx: int = 2048
+    rag_llamacpp_n_threads: int = 4
     default_llm: str = "gpt-4o"
     llm_endpoints: List[LLMProviderSettings] = []
 

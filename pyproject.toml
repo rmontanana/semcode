@@ -25,6 +25,7 @@ dependencies = [
   "tree-sitter==0.20.2",
   "tree-sitter-languages==1.10.2",
   "pymilvus>=2.4.4",
+  "llama-cpp-python>=0.2.82",
   "typer[all]>=0.12.3",
   "pydantic>=2.6.4",
   "pydantic-settings>=2.2.1",
