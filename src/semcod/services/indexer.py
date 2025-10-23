@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from ..chunking import CodeChunk
 from ..embeddings import EmbeddingPayload, EmbeddingProviderFactory
@@ -51,9 +51,20 @@ class IndexerService:
             log.warning("milvus_connection_failed", error=str(exc))
             return False
 
-    def index_repository(self, path: Path, force: bool = False) -> IndexingResult:
-        """Execute full indexing workflow for the repository at `path`."""
-        repo_metadata = self.ingestion_manager.ingest_local_path(path, force=force)
+    def index_repository(
+        self,
+        paths: Sequence[Path],
+        name: str,
+        force: bool = False,
+        ignore_dirs: Optional[Sequence[str]] = None,
+    ) -> IndexingResult:
+        """Execute full indexing workflow for the selected directories."""
+        repo_metadata = self.ingestion_manager.ingest_sources(
+            sources=paths,
+            repo_name=name,
+            force=force,
+            ignore_dirs=ignore_dirs,
+        )
         chunks = self.ingestion_manager.chunk_repository(repo_metadata)
         payloads = self._build_payloads(repo_metadata, chunks)
 

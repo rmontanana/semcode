@@ -10,7 +10,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional, Sequence
 
 from ..logger import get_logger
 from ..settings import settings
@@ -39,21 +39,28 @@ class RepositoryIngestionManager:
         log.info("workspace_initialized", workspace=str(self.workspace))
         self.chunker = TreeSitterChunker()
 
-    def ingest_local_path(self, source: Path, force: bool = False) -> RepositoryMetadata:
+    def ingest_sources(
+        self,
+        sources: Sequence[Path],
+        repo_name: str,
+        force: bool = False,
+        ignore_dirs: Optional[Iterable[str]] = None,
+    ) -> RepositoryMetadata:
         """
-        Ingest a repository already available on disk.
-
-        Parameters
-        ----------
-        source:
-            Path to the repository root.
-        force:
-            When true, overwrite existing workspace copies.
+        Ingest one or more directories already available on disk.
         """
-        if not source.exists():
-            raise FileNotFoundError(f"Repository path not found: {source}")
+        if not sources:
+            raise ValueError("At least one source path must be provided for ingestion.")
 
-        target = self.workspace / source.name
+        resolved_sources = []
+        for src in sources:
+            if not src.exists():
+                raise FileNotFoundError(f"Source path not found: {src}")
+            resolved_sources.append(src.resolve())
+
+        target = self.workspace / repo_name
+        ignore_set = {name.strip() for name in (ignore_dirs or []) if name.strip()}
+
         if target.exists():
             if not force:
                 log.info("workspace_copy_exists", target=str(target))
@@ -61,13 +68,35 @@ class RepositoryIngestionManager:
                 shutil.rmtree(target)
                 log.warning("workspace_copy_removed", target=str(target))
 
-        if not target.exists():
-            log.info("copying_repository", source=str(source), target=str(target))
-            shutil.copytree(source, target)
+        target.mkdir(parents=True, exist_ok=True)
+
+        def ignore_func(_src: str, names: Iterable[str]) -> List[str]:
+            return [name for name in names if name in ignore_set]
+
+        for src in resolved_sources:
+            if src.name in ignore_set:
+                log.info("skip_ignored_source", source=str(src))
+                continue
+
+            destination = target / src.name
+            if destination.exists():
+                shutil.rmtree(destination) if destination.is_dir() else destination.unlink()
+
+            if src.is_dir():
+                log.info(
+                    "copying_directory",
+                    source=str(src),
+                    destination=str(destination),
+                    ignore=list(ignore_set) if ignore_set else None,
+                )
+                shutil.copytree(src, destination, ignore=ignore_func if ignore_set else None)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, destination)
 
         languages = self._detect_languages(target)
-        metadata = RepositoryMetadata(name=source.name, path=target, languages=languages)
-        log.info("repository_ingested", repo=metadata.name)
+        metadata = RepositoryMetadata(name=repo_name, path=target, languages=languages)
+        log.info("repository_ingested", repo=metadata.name, sources=[str(s) for s in resolved_sources])
         return metadata
 
     def list_ingested(self) -> Iterable[RepositoryMetadata]:

@@ -39,8 +39,8 @@ Key packages:
 ## 2. Runtime Services & Processes
 
 ### 2.1 Repository Ingestion and Indexing
-1. **Workspace sync** (`RepositoryIngestionManager.ingest_local_path`)  
-   - Copies the source repository into `SEMCOD_WORKSPACE_ROOT`.  
+1. **Workspace sync** (`RepositoryIngestionManager.ingest_sources`)  
+   - Copies selected include directories into `SEMCOD_WORKSPACE_ROOT/<name>`.  
    - Captures language hints by scanning file extensions.
 2. **Chunking** (`TreeSitterChunker`)  
    - Attempts to load prebuilt Tree-sitter grammars (`tree-sitter-languages`).  
@@ -79,7 +79,7 @@ These steps are coordinated by `IndexerService.index_repository`, used both by t
 
 | Command | Internal Flow | Notes |
 | ------- | ------------- | ----- |
-| `semcod ingest PATH [--force]` | Instantiates `IndexerService` → `index_repository` → ingestion + chunking + embedding + Milvus upsert → registry update. | Requires access to Milvus and embedding provider keys. |
+| `semcod ingest --name NAME --root ROOT --include a,b [--ignore x,y] [-y]` | Instantiates `IndexerService` → `index_repository` → ingestion + chunking + embedding + Milvus upsert → registry update. Prints a preview tree and supports directory include/ignore lists before copying. | Requires access to Milvus and embedding provider keys. |
 | `semcod list` | Loads registry (`RepositoryRegistry.list`) and prints repository metadata. | Shows chunk counts, languages, revisions. |
 | `semcod workspace [--path NEW_PATH]` | Prints current workspace or updates `SEMCOD_WORKSPACE_ROOT`. | Setting change persists in env, not config file. |
 
@@ -90,8 +90,8 @@ CLI uses Typer (`src/semcod/cli.py`). Logging provided by `structlog` via `confi
 - Launch: `uv run semcod-api` or `python -m semcod.api.main`.
 - `GET /healthz`: Simple health probe.
 - `GET /repos`: Reads registry and returns workspace paths, languages, chunk counts.
-- `POST /ingest`: Accepts JSON body `{ "path": "/absolute/path", "force": false }`.  
-  Internally calls `IndexerService.index_repository`.
+- `POST /ingest`: Accepts JSON body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`.  
+  Internally calls `IndexerService.index_repository` with the selected directories.
 - `POST /query`: Accepts `{ "question": "..." }`.  
   - Validates non-empty input.  
   - Calls `SemanticSearchPipeline.query`.  

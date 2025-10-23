@@ -29,8 +29,11 @@ class RepoResponse(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    path: str
+    name: str
+    root: str
+    include: List[str]
     force: bool = False
+    ignore: Optional[List[str]] = None
 
 
 class QueryRequest(BaseModel):
@@ -72,7 +75,26 @@ def list_repositories() -> List[RepoResponse]:
 
 @app.post("/ingest", response_model=RepoResponse)
 def ingest_repository(request: IngestRequest) -> RepoResponse:
-    result = indexer.index_repository(Path(request.path), force=request.force)
+    if not request.include:
+        raise HTTPException(status_code=400, detail="Include list cannot be empty")
+
+    root_path = Path(request.root)
+    if not root_path.exists():
+        raise HTTPException(status_code=400, detail=f"Root path not found: {root_path}")
+
+    include_paths = []
+    for folder in request.include:
+        candidate = root_path / folder
+        if not candidate.exists():
+            raise HTTPException(status_code=400, detail=f"Included folder not found: {candidate}")
+        include_paths.append(candidate)
+
+    result = indexer.index_repository(
+        paths=include_paths,
+        name=request.name,
+        force=request.force,
+        ignore_dirs=request.ignore,
+    )
     return RepoResponse(
         name=result.repository.name,
         path=str(result.repository.path),

@@ -75,10 +75,15 @@ Ensure `tree-sitter-languages` is installed (included in required dependencies).
 
 ## CLI Usage
 ```bash
-semcod ingest /path/to/your/repo --force   # clone/copy into workspace, chunk, embed, upsert
-semcod list                                # show ingested repositories + chunk stats
-semcod workspace --path ./new-workspace    # change workspace location
+semcod ingest --name mdlp --root /repo --include src,tests         # copy selected folders, chunk, embed, upsert
+semcod ingest --name mdlp --root /repo --include src,tests \
+    --ignore vendor,venv                                           # skip third-party caches
+semcod ingest --name mdlp --root /repo --include src,tests -y       # bypass confirmation (non-interactive)
+semcod list                                                        # show ingested repositories + chunk stats
+semcod workspace --path ./new-workspace                            # change workspace location
 ```
+
+During `semcod ingest` the CLI prints a directory tree (depth=2) for each included folder so you can spot external dependencies before copying. Use `--ignore/-i` with a comma-separated list of folder names to exclude globally and `-y/--yes` to confirm automatically.
 
 ## API
 Run the service:
@@ -88,7 +93,7 @@ semcod-api
 
 Endpoints:
 - `GET /healthz` – service health.
-- `POST /ingest` – body `{ "path": "/abs/path", "force": false }`; triggers end-to-end indexing.
+- `POST /ingest` – body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`; triggers end-to-end indexing over selected folders.
 - `GET /repos` – list indexed repositories with language + chunk metadata.
 - `POST /query` – body `{ "question": "How do we initialize the cache?" }`; returns answer + source snippets.
 
