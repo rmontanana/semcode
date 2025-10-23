@@ -44,6 +44,7 @@ class AppSettings(BaseSettings):
     embedding_llamacpp_n_ctx: int = 2048
     embedding_llamacpp_n_threads: int = 4
     embedding_llamacpp_batch_size: int = 256
+    embedding_batch_size: int = 64
     rag_provider: str = "openai"
     rag_model: str = "gpt-4o"
     rag_api_base: Optional[str] = None
@@ -54,6 +55,8 @@ class AppSettings(BaseSettings):
     rag_llamacpp_n_threads: int = 4
     default_llm: str = "gpt-4o"
     llm_endpoints: List[LLMProviderSettings] = []
+    chunk_chars_per_token_estimate: float = 1.0
+    milvus_upsert_batch_size: int = 128
 
 
 settings = AppSettings()

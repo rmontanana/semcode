@@ -6,13 +6,14 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence
 
 from ..chunking import CodeChunk
 from ..embeddings import EmbeddingPayload, EmbeddingProviderFactory
 from ..ingestion import RepositoryIngestionManager, RepositoryMetadata
 from ..logger import get_logger
 from ..storage import MilvusVectorStore, RepositoryRecord, RepositoryRegistry
+from ..settings import settings
 
 log = get_logger(__name__)
 
@@ -22,6 +23,8 @@ class IndexingCallbacks:
     copy: Optional[Callable[[Path], None]] = None
     chunk: Optional[Callable[[Path], None]] = None
     stage: Optional[Callable[[str], None]] = None
+    embed_progress: Optional[Callable[[int, int], None]] = None
+    upsert_progress: Optional[Callable[[int, int], None]] = None
 
 
 @dataclass
@@ -86,7 +89,11 @@ class IndexerService:
             cb.stage("chunk_completed")
         if cb.stage:
             cb.stage("embedding_started")
-        payloads = self._build_payloads(repo_metadata, chunks)
+        payloads = self._build_payloads(
+            repo_metadata,
+            chunks,
+            progress=cb.embed_progress,
+        )
         if cb.stage:
             cb.stage("embedding_completed")
 
@@ -95,7 +102,10 @@ class IndexerService:
         upsert_success = False
         if self._connected or self._ensure_connection():
             try:
-                self.vector_store.upsert_embeddings(payloads)
+                self.vector_store.upsert_embeddings(
+                    payloads,
+                    progress=cb.upsert_progress,
+                )
             except Exception as exc:  # pragma: no cover - requires Milvus env
                 log.error("milvus_upsert_failed", error=str(exc))
             else:
@@ -119,9 +129,24 @@ class IndexerService:
             milvus_collection=self.vector_store.collection_name,
         )
 
-    def _build_payloads(self, metadata: RepositoryMetadata, chunks: List[CodeChunk]) -> List[EmbeddingPayload]:
+    def _build_payloads(
+        self,
+        metadata: RepositoryMetadata,
+        chunks: List[CodeChunk],
+        progress: Optional[Callable[[int, int], None]] = None,
+    ) -> List[EmbeddingPayload]:
         contents = [chunk.content for chunk in chunks]
-        vectors = self.embedding_client.embed_documents(contents)
+        total = len(contents)
+        if progress:
+            progress(0, total)
+        vectors: List[List[float]] = []
+        if total:
+            batch_size = self._embedding_batch_size()
+            for start in range(0, total, batch_size):
+                batch = contents[start : start + batch_size]
+                vectors.extend(self.embedding_client.embed_documents(batch))
+                if progress:
+                    progress(len(vectors), total)
         payloads: List[EmbeddingPayload] = []
         for chunk, vector in zip(chunks, vectors):
             chunk_id = self._make_chunk_id(metadata.name, chunk.path, chunk.start_line, chunk.end_line)
@@ -141,6 +166,11 @@ class IndexerService:
                 )
             )
         return payloads
+
+    @staticmethod
+    def _embedding_batch_size() -> int:
+        size = getattr(settings, "embedding_batch_size", 64)
+        return max(1, size)
 
     @staticmethod
     def _make_chunk_id(repo: str, path: Path, start: int, end: int) -> str:

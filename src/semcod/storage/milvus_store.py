@@ -7,7 +7,7 @@ later phases.
 """
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Callable, Iterable, List, Optional, Sequence
 
 from pymilvus import (  # type: ignore
     Collection,
@@ -71,23 +71,41 @@ class MilvusVectorStore:
         collection.load()
         return collection
 
-    def upsert_embeddings(self, payloads: Iterable[EmbeddingPayload]) -> None:
+    def upsert_embeddings(
+        self,
+        payloads: Sequence[EmbeddingPayload],
+        progress: Optional[Callable[[int, int], None]] = None,
+    ) -> None:
         """Insert or update embeddings inside Milvus."""
         if self._collection is None:
             raise RuntimeError("Milvus collection is not initialized. Call connect() first.")
 
-        ids, repos, paths, languages, texts, vectors, metadata = [], [], [], [], [], [], []
-        for payload in payloads:
-            ids.append(payload.id)
-            repos.append(payload.metadata.get("repo", ""))
-            paths.append(payload.metadata.get("path", ""))
-            languages.append(payload.metadata.get("language", ""))
-            texts.append(payload.text)
-            vectors.append(payload.vector)
-            metadata.append(payload.metadata)
+        payload_list: List[EmbeddingPayload] = list(payloads)
+        total = len(payload_list)
+        log.info("upserting_embeddings", count=total)
+        if progress:
+            progress(0, total)
+        if total == 0:
+            return
 
-        log.info("upserting_embeddings", count=len(ids))
-        self._collection.upsert([ids, repos, paths, languages, texts, vectors, metadata])
+        batch_size = max(1, getattr(settings, "milvus_upsert_batch_size", 128))
+        inserted = 0
+        for start in range(0, total, batch_size):
+            batch = payload_list[start : start + batch_size]
+            ids, repos, paths, languages, texts, vectors, metadata = [], [], [], [], [], [], []
+            for payload in batch:
+                ids.append(payload.id)
+                repos.append(payload.metadata.get("repo", ""))
+                paths.append(payload.metadata.get("path", ""))
+                languages.append(payload.metadata.get("language", ""))
+                texts.append(payload.text)
+                vectors.append(payload.vector)
+                metadata.append(payload.metadata)
+
+            self._collection.upsert([ids, repos, paths, languages, texts, vectors, metadata])
+            inserted += len(batch)
+            if progress:
+                progress(inserted, total)
 
     def search(self, vector: list[float], top_k: int = 10) -> list:
         """Run a raw vector search."""

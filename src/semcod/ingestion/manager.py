@@ -11,7 +11,7 @@ import fnmatch
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Iterator, List, Optional, Sequence
+from typing import Callable, Iterable, Iterator, List, Optional, Sequence
 
 from ..logger import get_logger
 from ..settings import settings

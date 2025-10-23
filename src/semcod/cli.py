@@ -208,6 +208,26 @@ def ingest(
         def on_chunk(path: Path) -> None:
             progress.update(chunk_task, advance=1, description=f"Chunking {path.name}")
 
+        def on_embed_progress(completed: int, total: int) -> None:
+            total = max(total, 1)
+            progress.update(
+                embed_task,
+                total=total,
+                completed=min(completed, total),
+                description=f"Embedding chunks ({completed}/{total})",
+            )
+            progress.refresh()
+
+        def on_upsert_progress(completed: int, total: int) -> None:
+            total = max(total, 1)
+            progress.update(
+                upsert_task,
+                total=total,
+                completed=min(completed, total),
+                description=f"Upserting embeddings ({completed}/{total})",
+            )
+            progress.refresh()
+
         def on_stage(stage: str) -> None:
             if stage == "copy_started":
                 progress.update(copy_task, description="Copying files")
@@ -220,18 +240,35 @@ def ingest(
             elif stage == "embedding_started":
                 progress.update(embed_task, description="Embedding chunks")
             elif stage == "embedding_completed":
-                progress.update(embed_task, advance=1, description="Embedding complete")
+                task = progress.tasks[embed_task]
+                progress.update(
+                    embed_task,
+                    completed=task.total if task.total is not None else task.completed,
+                    description="Embedding complete",
+                )
             elif stage == "upsert_started":
                 progress.update(upsert_task, description="Upserting embeddings")
             elif stage == "upsert_completed":
-                progress.update(upsert_task, advance=1, description="Upsert complete")
+                task = progress.tasks[upsert_task]
+                progress.update(
+                    upsert_task,
+                    completed=task.total if task.total is not None else task.completed,
+                    description="Upsert complete",
+                )
             elif stage == "upsert_failed":
-                progress.update(upsert_task, advance=1, description="Upsert failed")
+                task = progress.tasks[upsert_task]
+                progress.update(
+                    upsert_task,
+                    completed=task.total if task.total is not None else task.completed,
+                    description="Upsert failed",
+                )
 
         callbacks = IndexingCallbacks(
             copy=on_copy if copy_files else None,
             chunk=on_chunk if chunk_files else None,
             stage=on_stage,
+            embed_progress=on_embed_progress,
+            upsert_progress=on_upsert_progress,
         )
 
         service = IndexerService()
