@@ -3,6 +3,7 @@ Centralized application settings.
 
 The configuration is shared across CLI, API, and background workers.
 """
+
 from __future__ import annotations
 
 import os
@@ -129,7 +130,9 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     embedding = raw.get("embedding", {})
     if embedding:
-        data["embedding_provider"] = embedding.get("provider", data.get("embedding_provider"))
+        data["embedding_provider"] = embedding.get(
+            "provider", data.get("embedding_provider")
+        )
         if "model" in embedding:
             data["embedding_model"] = embedding["model"]
         if "dimension" in embedding:
@@ -146,7 +149,9 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
         llama_section = embedding.get("llamacpp", {})
         if llama_section:
             if "model_path" in llama_section:
-                data["embedding_llamacpp_model_path"] = _blank_to_none(llama_section["model_path"])
+                data["embedding_llamacpp_model_path"] = _blank_to_none(
+                    llama_section["model_path"]
+                )
             if "n_ctx" in llama_section:
                 data["embedding_llamacpp_n_ctx"] = llama_section["n_ctx"]
             if "n_threads" in llama_section:
@@ -179,7 +184,9 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
         rag_llama = rag.get("llamacpp", {})
         if rag_llama:
             if "model_path" in rag_llama:
-                data["rag_llamacpp_model_path"] = _blank_to_none(rag_llama["model_path"])
+                data["rag_llamacpp_model_path"] = _blank_to_none(
+                    rag_llama["model_path"]
+                )
             if "n_ctx" in rag_llama:
                 data["rag_llamacpp_n_ctx"] = rag_llama["n_ctx"]
             if "n_threads" in rag_llama:
@@ -187,7 +194,9 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     ingestion = raw.get("ingestion", {})
     if "chunk_chars_per_token_estimate" in ingestion:
-        data["chunk_chars_per_token_estimate"] = ingestion["chunk_chars_per_token_estimate"]
+        data["chunk_chars_per_token_estimate"] = ingestion[
+            "chunk_chars_per_token_estimate"
+        ]
 
     frontend = raw.get("frontend", {})
     if frontend:

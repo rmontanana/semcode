@@ -1,6 +1,7 @@
 """
 Lightweight in-memory telemetry collectors for the FastAPI layer.
 """
+
 from __future__ import annotations
 
 import threading
@@ -25,7 +26,12 @@ class Telemetry:
     def __init__(self, history_size: int = 50) -> None:
         self._lock = threading.Lock()
         self._history: Deque[TelemetryEvent] = deque(maxlen=history_size)
-        self._ingest = {"count": 0, "failures": 0, "total_duration_ms": 0.0, "last_timestamp": None}
+        self._ingest = {
+            "count": 0,
+            "failures": 0,
+            "total_duration_ms": 0.0,
+            "last_timestamp": None,
+        }
         self._query = {
             "count": 0,
             "failures": 0,
@@ -34,9 +40,13 @@ class Telemetry:
             "last_timestamp": None,
         }
 
-    def record_ingest(self, duration_ms: float, ok: bool, metadata: Optional[Dict[str, object]] = None) -> None:
+    def record_ingest(
+        self, duration_ms: float, ok: bool, metadata: Optional[Dict[str, object]] = None
+    ) -> None:
         metadata = metadata or {}
-        event = TelemetryEvent(kind="ingest", ok=ok, duration_ms=duration_ms, metadata=metadata)
+        event = TelemetryEvent(
+            kind="ingest", ok=ok, duration_ms=duration_ms, metadata=metadata
+        )
         with self._lock:
             self._history.appendleft(event)
             self._ingest["count"] += 1
@@ -45,9 +55,13 @@ class Telemetry:
             if not ok:
                 self._ingest["failures"] += 1
 
-    def record_query(self, duration_ms: float, ok: bool, used_fallback: bool = False) -> None:
+    def record_query(
+        self, duration_ms: float, ok: bool, used_fallback: bool = False
+    ) -> None:
         metadata = {"fallback_used": used_fallback}
-        event = TelemetryEvent(kind="query", ok=ok, duration_ms=duration_ms, metadata=metadata)
+        event = TelemetryEvent(
+            kind="query", ok=ok, duration_ms=duration_ms, metadata=metadata
+        )
         with self._lock:
             self._history.appendleft(event)
             self._query["count"] += 1
@@ -61,10 +75,14 @@ class Telemetry:
     def snapshot(self) -> Dict[str, object]:
         with self._lock:
             ingest_avg = (
-                self._ingest["total_duration_ms"] / self._ingest["count"] if self._ingest["count"] else 0.0
+                self._ingest["total_duration_ms"] / self._ingest["count"]
+                if self._ingest["count"]
+                else 0.0
             )
             query_avg = (
-                self._query["total_duration_ms"] / self._query["count"] if self._query["count"] else 0.0
+                self._query["total_duration_ms"] / self._query["count"]
+                if self._query["count"]
+                else 0.0
             )
             history = [
                 {

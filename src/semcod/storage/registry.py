@@ -4,6 +4,7 @@ Local registry for repositories tracked in the vector database.
 Persists a JSON catalogue under the workspace directory to avoid Milvus
 queries for simple bookkeeping operations.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,9 @@ class RepositoryRegistry:
     """JSON-backed registry implementation."""
 
     def __init__(self, registry_path: Optional[Path] = None) -> None:
-        self.registry_path = registry_path or (settings.workspace_root / "registry.json")
+        self.registry_path = registry_path or (
+            settings.workspace_root / "registry.json"
+        )
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
         self._records: Dict[str, RepositoryRecord] = {}
         self._load()

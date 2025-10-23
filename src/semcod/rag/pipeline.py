@@ -6,6 +6,7 @@ This module keeps the RAG flow self-contained so we do not depend on
 via our own storage wrapper and responses are synthesised with the configured
 LLM provider.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -33,7 +34,11 @@ class SemanticSearchPipeline:
         self.collection_name = collection_name
         self.embedding: Embeddings = EmbeddingProviderFactory.create()
         self.llm_model = llm_model or settings.rag_model
-        self.fallback_enabled = fallback_enabled if fallback_enabled is not None else settings.rag_fallback_enabled
+        self.fallback_enabled = (
+            fallback_enabled
+            if fallback_enabled is not None
+            else settings.rag_fallback_enabled
+        )
         self.vector_store = MilvusVectorStore(collection_name=collection_name)
         self._vector_connected = False
         self._last_retrieval_error: Exception | None = None
@@ -73,7 +78,9 @@ class SemanticSearchPipeline:
                 raise
             return self._fallback_answer(question, documents, exc)
 
-        answer = completion.content if hasattr(completion, "content") else str(completion)
+        answer = (
+            completion.content if hasattr(completion, "content") else str(completion)
+        )
         return {
             "answer": answer,
             "sources": self._docs_to_sources(documents),
@@ -208,7 +215,9 @@ class SemanticSearchPipeline:
     # ------------------------------------------------------------------
     # Fallback summarisation
     # ------------------------------------------------------------------
-    def _fallback_answer(self, question: str, documents: List[Dict[str, Any]], error: Exception) -> Dict[str, Any]:
+    def _fallback_answer(
+        self, question: str, documents: List[Dict[str, Any]], error: Exception
+    ) -> Dict[str, Any]:
         if not documents:
             answer = (
                 "I could not retrieve any relevant context for your question. "
@@ -222,7 +231,9 @@ class SemanticSearchPipeline:
             "meta": {"fallback_used": True, "reason": str(error)},
         }
 
-    def _summarize_documents(self, question: str, documents: List[Dict[str, Any]]) -> str:
+    def _summarize_documents(
+        self, question: str, documents: List[Dict[str, Any]]
+    ) -> str:
         lines = [f"Summary for '{question}':"]
         max_items = max(1, settings.rag_fallback_summary_sentences)
         for idx, doc in enumerate(documents[:max_items], start=1):
@@ -262,7 +273,10 @@ class SemanticSearchPipeline:
                     "Install it or choose a different provider."
                 ) from exc
 
-            model_path = settings.rag_llamacpp_model_path or settings.embedding_llamacpp_model_path
+            model_path = (
+                settings.rag_llamacpp_model_path
+                or settings.embedding_llamacpp_model_path
+            )
             if not model_path:
                 raise ValueError(
                     "Set SEMCOD_RAG_LLAMACPP_MODEL_PATH (or reuse SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH) "

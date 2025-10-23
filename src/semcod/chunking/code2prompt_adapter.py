@@ -4,6 +4,7 @@ Integration layer for Code2Prompt style chunk post-processing.
 The implementation is intentionally defensive because the public package is
 not always available. Downstream phases can plug in a richer integration.
 """
+
 from __future__ import annotations
 
 from typing import List

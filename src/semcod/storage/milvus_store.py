@@ -5,6 +5,7 @@ This module contains the minimal scaffolding required to initialize Milvus
 collections and upsert embeddings. Detailed RAG workflows will be added in
 later phases.
 """
+
 from __future__ import annotations
 
 from typing import Callable, Iterable, List, Optional, Sequence
@@ -28,7 +29,9 @@ log = get_logger(__name__)
 class MilvusVectorStore:
     """Thin wrapper around PyMilvus for our embedding workload."""
 
-    def __init__(self, collection_name: str = "semcod_chunks", dim: Optional[int] = None) -> None:
+    def __init__(
+        self, collection_name: str = "semcod_chunks", dim: Optional[int] = None
+    ) -> None:
         self.collection_name = collection_name
         self.dim = dim or settings.embedding_dimension
         self._collection: Optional[Collection] = None
@@ -50,15 +53,21 @@ class MilvusVectorStore:
             collection.load()
             return collection
 
-        log.info("creating_milvus_collection", collection=self.collection_name, dim=self.dim)
+        log.info(
+            "creating_milvus_collection", collection=self.collection_name, dim=self.dim
+        )
         schema = CollectionSchema(
             fields=[
-                FieldSchema(name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=64),
+                FieldSchema(
+                    name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=64
+                ),
                 FieldSchema(name="repo", dtype=DataType.VARCHAR, max_length=256),
                 FieldSchema(name="path", dtype=DataType.VARCHAR, max_length=512),
                 FieldSchema(name="language", dtype=DataType.VARCHAR, max_length=32),
                 FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
-                FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.dim),
+                FieldSchema(
+                    name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.dim
+                ),
                 FieldSchema(name="metadata", dtype=DataType.JSON),
             ],
             description="Semantic code chunks",
@@ -66,7 +75,11 @@ class MilvusVectorStore:
         collection = Collection(name=self.collection_name, schema=schema)
         collection.create_index(
             field_name="embedding",
-            index_params={"metric_type": "IP", "index_type": "IVF_FLAT", "params": {"nlist": 128}},
+            index_params={
+                "metric_type": "IP",
+                "index_type": "IVF_FLAT",
+                "params": {"nlist": 128},
+            },
         )
         collection.load()
         return collection
@@ -78,7 +91,9 @@ class MilvusVectorStore:
     ) -> None:
         """Insert or update embeddings inside Milvus."""
         if self._collection is None:
-            raise RuntimeError("Milvus collection is not initialized. Call connect() first.")
+            raise RuntimeError(
+                "Milvus collection is not initialized. Call connect() first."
+            )
 
         payload_list: List[EmbeddingPayload] = list(payloads)
         total = len(payload_list)
@@ -92,7 +107,15 @@ class MilvusVectorStore:
         inserted = 0
         for start in range(0, total, batch_size):
             batch = payload_list[start : start + batch_size]
-            ids, repos, paths, languages, texts, vectors, metadata = [], [], [], [], [], [], []
+            ids, repos, paths, languages, texts, vectors, metadata = (
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
             for payload in batch:
                 ids.append(payload.id)
                 repos.append(payload.metadata.get("repo", ""))
@@ -102,7 +125,9 @@ class MilvusVectorStore:
                 vectors.append(payload.vector)
                 metadata.append(payload.metadata)
 
-            self._collection.upsert([ids, repos, paths, languages, texts, vectors, metadata])
+            self._collection.upsert(
+                [ids, repos, paths, languages, texts, vectors, metadata]
+            )
             inserted += len(batch)
             if progress:
                 progress(inserted, total)
@@ -110,7 +135,9 @@ class MilvusVectorStore:
     def search(self, vector: list[float], top_k: int = 10) -> list:
         """Run a raw vector search."""
         if self._collection is None:
-            raise RuntimeError("Milvus collection is not initialized. Call connect() first.")
+            raise RuntimeError(
+                "Milvus collection is not initialized. Call connect() first."
+            )
         results = self._collection.search(
             data=[vector],
             anns_field="embedding",

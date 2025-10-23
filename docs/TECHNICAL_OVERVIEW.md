@@ -176,7 +176,17 @@ Optional future integrations (placeholders in project plan):
 
 ---
 
-## 7. Source File Map (Quick Reference)
+## 7. Tooling & Automation
+
+- **Makefile** – convenience targets for installing dependencies (`make install` / `make install-ui`), running lint/type checks, executing unit vs integration tests, and starting the API/Streamlit/Gradio entry points.
+- **Dockerfile** – Python 3.12 slim image with project + UI extras installed. `docker-compose.yml` reuses this image for both API and Streamlit services.
+- **docker-compose.yml** – spins up Milvus (standalone), the API, and Streamlit UI; mounts `semcod_settings.toml` and `workspace/` so state persists on the host.
+- **CI workflow** – `.github/workflows/ci.yml` runs `make install-ui`, lint, mypy, unit tests, and integration tests on every push/PR.
+- **Tests** – `tests/` holds unit coverage (chunker, embedding factory) while `tests/integration/` exercises the indexer pipeline and FastAPI endpoints with stubs (no Milvus/OpenAI required).
+
+---
+
+## 8. Source File Map (Quick Reference)
 
 | Path | Contents |
 | ---- | -------- |
@@ -193,10 +203,13 @@ Optional future integrations (placeholders in project plan):
 | `src/semcod/api/main.py` | FastAPI application with REST endpoints. |
 | `src/semcod/frontend/app.py` | Streamlit user interface. |
 | `tests/test_chunker.py` | Smoke test for chunker fallback. |
+| `tests/test_embeddings_factory.py` | Ensures embedding factory wiring (Jina provider). |
+| `tests/integration/test_indexer_service.py` | End-to-end indexing without external services. |
+| `tests/integration/test_api_endpoints.py` | FastAPI contract checks with stubbed dependencies. |
 
 ---
 
-## 8. Operational Notes
+## 9. Operational Notes
 
 - **Milvus availability**: The indexer will warn and skip vector upserts if it cannot connect to Milvus; ingestion still copies the repo and updates the registry.
 - **Tree-sitter grammars**: If `tree-sitter-languages` is missing or incompatible, the chunker logs a warning and falls back to full-file chunks to keep pipelines running.
@@ -204,7 +217,7 @@ Optional future integrations (placeholders in project plan):
 - **Local models**: When using llama.cpp, point `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` / `SEMCOD_RAG_LLAMACPP_MODEL_PATH` to your GGUF files and align ctx / thread counts with your hardware. LM Studio integrations use the OpenAI-compatible HTTP interface (`SEMCOD_*_API_BASE`).
 - **Tokenizer warnings**: Some local stacks emit Hugging Face tokenizer fork warnings. Set `TOKENIZERS_PARALLELISM=false` if the log noise is problematic.
 - **Context7 integration**: When extending the system, use context7 docs to fetch LangChain / Tree-sitter references as part of the development workflow.
-- **Extensibility roadmap**: The README tracks remaining phases (tests, CI, packaging); phases 4–5 (auth/async/telemetry + advanced UI) are now complete.
+- **Extensibility roadmap**: README now marks Phase 6 as complete (tooling, CI, Docker). Future roadmap items can focus on additional providers or deeper RAG evaluation.
 
 ---
 

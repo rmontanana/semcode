@@ -5,6 +5,7 @@ The manager is responsible for preparing repositories for downstream
 processing (chunking + embedding). At this stage it only captures metadata
 and validates sources; subsequent phases will expand the functionality.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -98,7 +99,12 @@ class RepositoryIngestionManager:
             resolved_sources.append(src.resolve())
 
         target = self.workspace / repo_name
-        combined_ignores = list(dict.fromkeys(DEFAULT_IGNORE_PATTERNS + tuple(name.strip() for name in (ignore_dirs or []) if name.strip())))
+        combined_ignores = list(
+            dict.fromkeys(
+                DEFAULT_IGNORE_PATTERNS
+                + tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
+            )
+        )
         ignore_patterns = tuple(combined_ignores)
 
         if target.exists():
@@ -111,9 +117,15 @@ class RepositoryIngestionManager:
         target.mkdir(parents=True, exist_ok=True)
 
         def ignore_func(_src: str, names: Iterable[str]) -> List[str]:
-            return [name for name in names if any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)]
+            return [
+                name
+                for name in names
+                if any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)
+            ]
 
-        def copy_with_callback(src_path: str, dst_path: str, *, follow_symlinks: bool = True) -> str:
+        def copy_with_callback(
+            src_path: str, dst_path: str, *, follow_symlinks: bool = True
+        ) -> str:
             shutil.copy2(src_path, dst_path, follow_symlinks=follow_symlinks)
             if copy_callback:
                 copy_callback(Path(dst_path))
@@ -126,7 +138,9 @@ class RepositoryIngestionManager:
 
             destination = target / src.name
             if destination.exists():
-                shutil.rmtree(destination) if destination.is_dir() else destination.unlink()
+                shutil.rmtree(
+                    destination
+                ) if destination.is_dir() else destination.unlink()
 
             if src.is_dir():
                 log.info(
@@ -149,7 +163,11 @@ class RepositoryIngestionManager:
 
         languages = self._detect_languages(target)
         metadata = RepositoryMetadata(name=repo_name, path=target, languages=languages)
-        log.info("repository_ingested", repo=metadata.name, sources=[str(s) for s in resolved_sources])
+        log.info(
+            "repository_ingested",
+            repo=metadata.name,
+            sources=[str(s) for s in resolved_sources],
+        )
         return metadata
 
     def list_ingested(self) -> Iterable[RepositoryMetadata]:
@@ -165,7 +183,15 @@ class RepositoryIngestionManager:
         for path in repo.path.rglob("*"):
             if not path.is_file():
                 continue
-            if path.suffix.lower() in {".py", ".cpp", ".cxx", ".cc", ".hpp", ".hxx", ".hh"}:
+            if path.suffix.lower() in {
+                ".py",
+                ".cpp",
+                ".cxx",
+                ".cc",
+                ".hpp",
+                ".hxx",
+                ".hh",
+            }:
                 yield path
 
     def chunk_repository(
@@ -181,7 +207,9 @@ class RepositoryIngestionManager:
         """
         files = list(self.iter_source_files(repo))
         log.info("chunking_repository", repo=repo.name, files=len(files))
-        raw_chunks: List[CodeChunk] = self.chunker.chunk_repository(files, progress_callback=progress_callback)
+        raw_chunks: List[CodeChunk] = self.chunker.chunk_repository(
+            files, progress_callback=progress_callback
+        )
         refined = apply_code2prompt_heuristics(raw_chunks)
         log.info("chunks_ready", repo=repo.name, chunks=len(refined))
         return refined
@@ -193,6 +221,13 @@ class RepositoryIngestionManager:
         for file_path in path.rglob("*"):
             if file_path.suffix.lower() == ".py":
                 languages.add("python")
-            elif file_path.suffix.lower() in {".cpp", ".cxx", ".cc", ".hpp", ".hxx", ".hh"}:
+            elif file_path.suffix.lower() in {
+                ".cpp",
+                ".cxx",
+                ".cc",
+                ".hpp",
+                ".hxx",
+                ".hh",
+            }:
                 languages.add("cpp")
         return sorted(languages)

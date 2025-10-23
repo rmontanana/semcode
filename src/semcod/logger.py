@@ -4,6 +4,7 @@ Logger configuration for the semcod project.
 This module integrates structlog with the standard logging module so CLI/API
 entry points can choose between silent stdout or rich console/file output.
 """
+
 from __future__ import annotations
 
 import logging
@@ -62,7 +63,9 @@ def configure_logging(
     if enable_console:
         handler = logging.StreamHandler()
         handler.setLevel(console_level if console_level is not None else level)
-        handler.setFormatter(_build_formatter(structlog.dev.ConsoleRenderer(colors=False)))
+        handler.setFormatter(
+            _build_formatter(structlog.dev.ConsoleRenderer(colors=False))
+        )
         handlers.append(handler)
     else:
         handlers.append(logging.NullHandler())

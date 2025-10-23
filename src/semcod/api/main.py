@@ -1,6 +1,7 @@
 """
 FastAPI entrypoint for the semantic code search engine (Phase 4 features).
 """
+
 from __future__ import annotations
 
 import time
@@ -86,7 +87,9 @@ def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/repos", response_model=List[RepoResponse], dependencies=[Depends(require_api_key)])
+@app.get(
+    "/repos", response_model=List[RepoResponse], dependencies=[Depends(require_api_key)]
+)
 def list_repositories() -> List[RepoResponse]:
     repos = registry.list()
     return [
@@ -101,10 +104,15 @@ def list_repositories() -> List[RepoResponse]:
     ]
 
 
-@app.post("/ingest", response_model=RepoResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/ingest", response_model=RepoResponse, dependencies=[Depends(require_api_key)]
+)
 def ingest_repository(request: IngestRequest) -> RepoResponse:
     if not request.include:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Include list cannot be empty")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Include list cannot be empty",
+        )
 
     include_paths = _resolve_include_paths(request.root, request.include)
     start_time = time.time()
@@ -116,7 +124,9 @@ def ingest_repository(request: IngestRequest) -> RepoResponse:
             ignore_dirs=request.ignore,
         )
     except Exception as exc:
-        _record_ingest_telemetry(start_time, ok=False, metadata={"repo": request.name, "error": str(exc)})
+        _record_ingest_telemetry(
+            start_time, ok=False, metadata={"repo": request.name, "error": str(exc)}
+        )
         raise
 
     response = RepoResponse(
@@ -129,56 +139,85 @@ def ingest_repository(request: IngestRequest) -> RepoResponse:
     return response
 
 
-@app.post("/jobs/ingest", response_model=JobResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/jobs/ingest", response_model=JobResponse, dependencies=[Depends(require_api_key)]
+)
 def enqueue_ingest(
     request: IngestRequest,
     background_tasks: BackgroundTasks,
 ) -> JobResponse:
     if not request.include:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Include list cannot be empty")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Include list cannot be empty",
+        )
 
     # Validate inputs up front so failures bubble to the client immediately.
     _resolve_include_paths(request.root, request.include)
-    job = job_manager.create("ingest", metadata={"name": request.name, "include": request.include})
+    job = job_manager.create(
+        "ingest", metadata={"name": request.name, "include": request.include}
+    )
     background_tasks.add_task(_run_ingest_job, job.id, request.dict())
     return _job_to_response(job)
 
 
-@app.get("/jobs", response_model=List[JobResponse], dependencies=[Depends(require_api_key)])
+@app.get(
+    "/jobs", response_model=List[JobResponse], dependencies=[Depends(require_api_key)]
+)
 def list_jobs() -> List[JobResponse]:
     return [_job_to_response(job) for job in job_manager.list().values()]
 
 
-@app.get("/jobs/{job_id}", response_model=JobResponse, dependencies=[Depends(require_api_key)])
+@app.get(
+    "/jobs/{job_id}",
+    response_model=JobResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def get_job(job_id: str) -> JobResponse:
     job = job_manager.get(job_id)
     if job is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
+        )
     return _job_to_response(job)
 
 
-@app.get("/telemetry", response_model=TelemetryResponse, dependencies=[Depends(require_api_key)])
+@app.get(
+    "/telemetry",
+    response_model=TelemetryResponse,
+    dependencies=[Depends(require_api_key)],
+)
 def telemetry_snapshot(enabled: bool = Depends(telemetry_enabled)) -> TelemetryResponse:
     if not enabled:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Telemetry disabled")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Telemetry disabled"
+        )
     data = telemetry.snapshot()
     return TelemetryResponse(**data)
 
 
-@app.post("/query", response_model=QueryResponse, dependencies=[Depends(require_api_key)])
+@app.post(
+    "/query", response_model=QueryResponse, dependencies=[Depends(require_api_key)]
+)
 def query(request: QueryRequest) -> QueryResponse:
     if not request.question:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty."
+        )
 
     start_time = time.time()
     try:
         result = pipeline.query(request.question)
     except Exception as exc:
         _record_query_telemetry(start_time, ok=False, fallback_used=False)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
 
     sources = [QuerySource(**source) for source in result.get("sources", [])]
-    response = QueryResponse(answer=result.get("answer", ""), sources=sources, meta=result.get("meta"))
+    response = QueryResponse(
+        answer=result.get("answer", ""), sources=sources, meta=result.get("meta")
+    )
     fallback_used = bool(response.meta and response.meta.get("fallback_used"))
     _record_query_telemetry(start_time, ok=True, fallback_used=fallback_used)
     return response
@@ -187,7 +226,10 @@ def query(request: QueryRequest) -> QueryResponse:
 def _resolve_include_paths(root: str, include: List[str]) -> List[Path]:
     root_path = Path(root)
     if not root_path.exists():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Root path not found: {root_path}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Root path not found: {root_path}",
+        )
 
     paths: List[Path] = []
     for folder in include:
@@ -214,21 +256,29 @@ def _run_ingest_job(job_id: str, payload: Dict[str, Any]) -> None:
         def on_copy(path: Path) -> None:
             nonlocal copy_count
             copy_count += 1
-            job_manager.update_progress(job_id, copy_processed=copy_count, last_file=str(path))
+            job_manager.update_progress(
+                job_id, copy_processed=copy_count, last_file=str(path)
+            )
 
         def on_chunk(path: Path) -> None:
             nonlocal chunk_count
             chunk_count += 1
-            job_manager.update_progress(job_id, chunk_processed=chunk_count, last_chunk=str(path))
+            job_manager.update_progress(
+                job_id, chunk_processed=chunk_count, last_chunk=str(path)
+            )
 
         def on_stage(stage: str) -> None:
             job_manager.update_stage(job_id, stage)
 
         def on_embed_progress(completed: int, total: int) -> None:
-            job_manager.update_progress(job_id, embed_completed=completed, embed_total=total)
+            job_manager.update_progress(
+                job_id, embed_completed=completed, embed_total=total
+            )
 
         def on_upsert_progress(completed: int, total: int) -> None:
-            job_manager.update_progress(job_id, upsert_completed=completed, upsert_total=total)
+            job_manager.update_progress(
+                job_id, upsert_completed=completed, upsert_total=total
+            )
 
         callbacks = IndexingCallbacks(
             copy=on_copy,
@@ -256,7 +306,9 @@ def _run_ingest_job(job_id: str, payload: Dict[str, Any]) -> None:
         metadata = {"job_id": job_id, "repo": repo_payload.name}
         _record_ingest_telemetry(start_time, ok=True, metadata=metadata)
     except HTTPException as exc:
-        job_manager.fail(job_id, error=exc.detail if isinstance(exc.detail, str) else str(exc.detail))
+        job_manager.fail(
+            job_id, error=exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        )
         metadata = {"job_id": job_id, "repo": payload.get("name"), "error": exc.detail}
         _record_ingest_telemetry(start_time, ok=False, metadata=metadata)
     except Exception as exc:  # pragma: no cover - defensive catch
@@ -281,16 +333,24 @@ def _job_to_response(job: JobInfo) -> JobResponse:
     )
 
 
-def _record_ingest_telemetry(start_time: float, ok: bool, metadata: Optional[Dict[str, Any]] = None) -> None:
+def _record_ingest_telemetry(
+    start_time: float, ok: bool, metadata: Optional[Dict[str, Any]] = None
+) -> None:
     if not settings.telemetry_enabled:
         return
-    telemetry.record_ingest(duration_ms=(time.time() - start_time) * 1000.0, ok=ok, metadata=metadata)
+    telemetry.record_ingest(
+        duration_ms=(time.time() - start_time) * 1000.0, ok=ok, metadata=metadata
+    )
 
 
 def _record_query_telemetry(start_time: float, ok: bool, fallback_used: bool) -> None:
     if not settings.telemetry_enabled:
         return
-    telemetry.record_query(duration_ms=(time.time() - start_time) * 1000.0, ok=ok, used_fallback=fallback_used)
+    telemetry.record_query(
+        duration_ms=(time.time() - start_time) * 1000.0,
+        ok=ok,
+        used_fallback=fallback_used,
+    )
 
 
 def run() -> None:

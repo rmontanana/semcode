@@ -136,22 +136,47 @@ semcod-gradio
 ```
 Launches a browser-based alternative UI with API configuration fields, optional repo/language filters, and a tabular view of retrieved snippets.
 
+## Makefile Shortcuts
+The repository ships with a convenience `Makefile` to streamline local workflows:
+- `make install` / `make install-ui` – create a virtualenv in `.venv` and install runtime (+ UI extras).
+- `make lint` / `make typecheck` – run Ruff and mypy against the source tree.
+- `make test`, `make test-unit`, `make test-integration` – execute the full suite or targeted subsets.
+- `make run-api` – launch the FastAPI server (honours `API_HOST` / `API_PORT` overrides).
+- `make run-streamlit` / `make run-gradio` – start the interactive frontends.
+- `make clean` – remove `__pycache__` artefacts.
+
+## Docker Compose
+`docker-compose.yml` provisions Milvus, the API, and the Streamlit frontend. Copy `semcod_settings.toml.sample`
+to `semcod_settings.toml`, adjust credentials (MILVUS URI, embedding provider keys), then run:
+```bash
+docker compose up --build
+```
+The API listens on `localhost:8000` and the Streamlit UI on `localhost:8501`, both reading the mounted
+`semcod_settings.toml` and writing to the shared `workspace/` directory.
+
+## Continuous Integration
+`.github/workflows/ci.yml` runs on every push/PR: install (via `make install-ui`), lint, type-check, unit tests,
+and integration tests. Keep the workflow green before merging feature branches.
+
 ## Development Roadmap
 - Phase 1 ✅ – Project scaffolding, `pyproject.toml`, configuration, CLI entry points.
 - Phase 2 ✅ – Repository ingestion, language detection, Tree-sitter chunking, Code2Prompt hooks.
 - Phase 3 ✅ – Embedding provider abstraction, Milvus wrapper, registry tracking, IndexerService.
 - Phase 4 ✅ – FastAPI auth + async ingestion jobs + telemetry endpoints, plus prompt customization and LLM fallback logic.
 - Phase 5 ✅ – Streamlit filters/history/diff tooling and an optional Gradio interface.
-- Phase 6 🚧 – Additional documentation, integration tests, docker-compose examples, CI workflows.
+- Phase 6 ✅ – Makefile automation, integration tests, Docker Compose stack, and CI workflow.
 
 ## Testing
 ```bash
-uv pip install -e ".[dev]"
-pytest
+make install-ui
+make test
+make test-integration
 ```
-Tests currently include chunker smoke tests (skipped automatically if Tree-sitter grammars are missing). Future phases will add integration coverage for Milvus operations and the FastAPI surface.
+Unit coverage exercises the chunker and embedding providers; integration tests verify the `IndexerService`
+orchestrator and FastAPI endpoints with lightweight stubs (no Milvus/OpenAI credentials required).
 
 ## Contributing
 1. Fork and clone.
-2. Run formatting/linting: `uv run ruff check .` and `uv run mypy src`.
-3. Open PR with feature description and verification steps.
+2. `make install-ui`
+3. Run `make lint`, `make typecheck`, and `make test`.
+4. Open a PR with a summary of changes and verification steps (including any manual ingestion/query runs).

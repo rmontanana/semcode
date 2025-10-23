@@ -1,6 +1,7 @@
 """
 Background job tracking utilities for long-running API operations.
 """
+
 from __future__ import annotations
 
 import threading
@@ -36,7 +37,9 @@ class JobManager:
         self._jobs: Dict[str, JobInfo] = {}
         self._lock = threading.Lock()
 
-    def create(self, job_type: str, metadata: Optional[Dict[str, object]] = None) -> JobInfo:
+    def create(
+        self, job_type: str, metadata: Optional[Dict[str, object]] = None
+    ) -> JobInfo:
         job_id = str(uuid.uuid4())
         info = JobInfo(id=job_id, type=job_type, progress={"metadata": metadata or {}})
         with self._lock:
@@ -51,7 +54,9 @@ class JobManager:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def set_status(self, job_id: str, status: JobStatus, stage: Optional[str] = None) -> None:
+    def set_status(
+        self, job_id: str, status: JobStatus, stage: Optional[str] = None
+    ) -> None:
         with self._lock:
             job = self._jobs[job_id]
             job.status = status

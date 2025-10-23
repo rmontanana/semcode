@@ -12,10 +12,7 @@ except ModuleNotFoundError:
 
 def test_chunker_produces_chunk(tmp_path: Path) -> None:
     sample_file = tmp_path / "example.py"
-    sample_file.write_text(
-        "def greet(name: str) -> str:\n"
-        "    return f'Hello {name}'\n"
-    )
+    sample_file.write_text("def greet(name: str) -> str:\n    return f'Hello {name}'\n")
     chunker = TreeSitterChunker()
     chunks = chunker.chunk_file(sample_file, "python")
     assert len(chunks) == 1

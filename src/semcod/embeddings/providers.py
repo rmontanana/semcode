@@ -4,6 +4,7 @@ Abstractions for embedding providers.
 This module wires LangChain embeddings, making it straightforward to plug
 different vendors by configuration.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -34,7 +35,9 @@ class EmbeddingProviderFactory:
     def create(provider: str | None = None, model: str | None = None) -> Embeddings:
         provider_name = (provider or settings.embedding_provider).lower()
 
-        if provider_name in {"openai", "lmstudio"} or provider_name.startswith("openai"):
+        if provider_name in {"openai", "lmstudio"} or provider_name.startswith(
+            "openai"
+        ):
             from langchain_openai import OpenAIEmbeddings  # type: ignore
 
             embed_model = model or settings.embedding_model
@@ -54,7 +57,9 @@ class EmbeddingProviderFactory:
         if provider_name == "jina":
             from langchain_community.embeddings import JinaEmbeddings  # type: ignore
 
-            embed_model = model or settings.embedding_model or "jina-embeddings-v2-base-en"
+            embed_model = (
+                model or settings.embedding_model or "jina-embeddings-v2-base-en"
+            )
             log.info("initializing_jina_embeddings", model=embed_model)
             jina_kwargs: dict[str, Any] = {"model_name": embed_model}
             if settings.embedding_api_key:
@@ -94,4 +99,6 @@ class EmbeddingProviderFactory:
             }
             return LlamaCppEmbeddings(**llama_kwargs)
 
-        raise NotImplementedError(f"Embedding provider not yet supported: {provider_name}")
+        raise NotImplementedError(
+            f"Embedding provider not yet supported: {provider_name}"
+        )

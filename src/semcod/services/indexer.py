@@ -1,6 +1,7 @@
 """
 Repository indexing workflow orchestration.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -84,7 +85,9 @@ class IndexerService:
             cb.stage("copy_completed")
         if cb.stage:
             cb.stage("chunk_started")
-        chunks = self.ingestion_manager.chunk_repository(repo_metadata, progress_callback=cb.chunk)
+        chunks = self.ingestion_manager.chunk_repository(
+            repo_metadata, progress_callback=cb.chunk
+        )
         if cb.stage:
             cb.stage("chunk_completed")
         if cb.stage:
@@ -149,7 +152,9 @@ class IndexerService:
                     progress(len(vectors), total)
         payloads: List[EmbeddingPayload] = []
         for chunk, vector in zip(chunks, vectors):
-            chunk_id = self._make_chunk_id(metadata.name, chunk.path, chunk.start_line, chunk.end_line)
+            chunk_id = self._make_chunk_id(
+                metadata.name, chunk.path, chunk.start_line, chunk.end_line
+            )
             payloads.append(
                 EmbeddingPayload(
                     id=chunk_id,

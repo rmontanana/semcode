@@ -1,4 +1,5 @@
 """Semi-official launcher that shells out to ``streamlit run`` with config."""
+
 from __future__ import annotations
 
 import subprocess

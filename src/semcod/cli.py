@@ -12,7 +12,13 @@ from typing import Optional, Sequence
 
 import typer
 from rich.console import Console
-from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from .ingestion.manager import DEFAULT_IGNORE_PATTERNS
 from .logger import configure_logging, get_logger, redirect_logging_to_file
@@ -64,8 +70,6 @@ def _collect_files(
                     continue
                 files.append(candidate)
     return list(dict.fromkeys(files))
-
-
 
 
 def _render_directory_tree(
@@ -232,11 +236,15 @@ def ingest(
             if stage == "copy_started":
                 progress.update(copy_task, description="Copying files")
             elif stage == "copy_completed":
-                progress.update(copy_task, completed=copy_total, description="Copy complete")
+                progress.update(
+                    copy_task, completed=copy_total, description="Copy complete"
+                )
             elif stage == "chunk_started":
                 progress.update(chunk_task, description="Chunking files")
             elif stage == "chunk_completed":
-                progress.update(chunk_task, completed=chunk_total, description="Chunking complete")
+                progress.update(
+                    chunk_task, completed=chunk_total, description="Chunking complete"
+                )
             elif stage == "embedding_started":
                 progress.update(embed_task, description="Embedding chunks")
             elif stage == "embedding_completed":
@@ -300,7 +308,9 @@ def list_repos() -> None:
 
 @app.command()
 def workspace(
-    path: Optional[Path] = typer.Option(None, "--path", help="Override workspace root.")
+    path: Optional[Path] = typer.Option(
+        None, "--path", help="Override workspace root."
+    ),
 ) -> None:
     """Show or update the current workspace location."""
     if path:

@@ -15,6 +15,7 @@ try:
     from ..settings import settings
 except ImportError:  # When executed as a plain script via `streamlit run`
     import sys
+
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
@@ -37,7 +38,9 @@ def _request(
     headers = kwargs.pop("headers", {})
     if api_key:
         headers[API_KEY_HEADER] = api_key
-    effective_timeout = timeout if timeout is not None else settings.frontend_request_timeout
+    effective_timeout = (
+        timeout if timeout is not None else settings.frontend_request_timeout
+    )
     response = requests.request(
         method,
         url,
@@ -112,7 +115,7 @@ def _render_diff(sources: List[Dict]) -> None:
         return
 
     options = [
-        f"{idx+1}. {src.get('repo', 'Unknown')} · {src.get('path', 'Unknown')}"
+        f"{idx + 1}. {src.get('repo', 'Unknown')} · {src.get('path', 'Unknown')}"
         for idx, src in enumerate(sources)
     ]
     left_idx = st.selectbox(

@@ -1,6 +1,7 @@
 """
 Optional Gradio interface for the semantic code search engine.
 """
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional
@@ -25,7 +26,9 @@ def _request(
     headers = kwargs.pop("headers", {})
     if api_key:
         headers[API_KEY_HEADER] = api_key
-    effective_timeout = timeout if timeout is not None else settings.frontend_request_timeout
+    effective_timeout = (
+        timeout if timeout is not None else settings.frontend_request_timeout
+    )
     response = requests.request(
         method,
         url,
@@ -103,20 +106,28 @@ def run() -> None:
 
     def _load_filters(api_root: str, api_key: str) -> tuple[str, str]:
         try:
-            repos = _fetch_repositories(api_root.strip() or DEFAULT_API_ROOT, api_key.strip() or None)
+            repos = _fetch_repositories(
+                api_root.strip() or DEFAULT_API_ROOT, api_key.strip() or None
+            )
         except Exception:
             return "", ""
         repo_names = sorted({repo["name"] for repo in repos})
-        languages = sorted({lang for repo in repos for lang in (repo.get("languages") or [])})
+        languages = sorted(
+            {lang for repo in repos for lang in (repo.get("languages") or [])}
+        )
         return ", ".join(repo_names), ", ".join(languages)
 
     with gr.Blocks(title="Semantic Code Search") as demo:
         gr.Markdown("# Semantic Code Search Engine (Gradio)")
         with gr.Row():
-            question = gr.Textbox(label="Question", placeholder="How is the HTTP client initialized?")
+            question = gr.Textbox(
+                label="Question", placeholder="How is the HTTP client initialized?"
+            )
         with gr.Row():
             api_root = gr.Textbox(label="API root", value=DEFAULT_API_ROOT)
-            api_key = gr.Textbox(label="API key", value=DEFAULT_API_KEY or "", type="password")
+            api_key = gr.Textbox(
+                label="API key", value=DEFAULT_API_KEY or "", type="password"
+            )
         with gr.Row():
             repo_filter = gr.Textbox(label="Filter repos (comma separated)")
             language_filter = gr.Textbox(label="Filter languages (comma separated)")

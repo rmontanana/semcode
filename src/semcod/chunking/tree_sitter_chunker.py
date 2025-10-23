@@ -5,6 +5,7 @@ This module currently provides lightweight stubs that will be expanded in
 later phases to generate semantically meaningful chunks leveraging AST
 structure and Code2Prompt heuristics.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -154,7 +155,9 @@ class TreeSitterChunker:
             return "cpp"
         return None
 
-    def _chunk_with_tree_sitter(self, path: Path, language: str, language_key: str) -> List[CodeChunk]:
+    def _chunk_with_tree_sitter(
+        self, path: Path, language: str, language_key: str
+    ) -> List[CodeChunk]:
         parser = self._get_parser(language_key)
         source_bytes = path.read_bytes()
         text = source_bytes.decode("utf-8", errors="ignore")
