@@ -51,6 +51,16 @@ class EmbeddingProviderFactory:
                 kwargs["tiktoken_enabled"] = False
             return OpenAIEmbeddings(**kwargs)
 
+        if provider_name == "jina":
+            from langchain_community.embeddings import JinaEmbeddings  # type: ignore
+
+            embed_model = model or settings.embedding_model or "jina-embeddings-v2-base-en"
+            log.info("initializing_jina_embeddings", model=embed_model)
+            jina_kwargs: dict[str, Any] = {"model_name": embed_model}
+            if settings.embedding_api_key:
+                jina_kwargs["jina_api_key"] = settings.embedding_api_key
+            return JinaEmbeddings(**jina_kwargs)
+
         if provider_name in {"llamacpp", "llama.cpp"}:
             try:
                 from langchain_community.embeddings import LlamaCppEmbeddings  # type: ignore

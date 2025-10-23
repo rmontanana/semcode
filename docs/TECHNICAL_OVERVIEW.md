@@ -50,7 +50,7 @@ Key packages:
    - Hooks into `code2prompt` when available for heuristic refinement.
 3. **Embedding** (`EmbeddingProviderFactory`)  
 - Uses LangChain to instantiate an embedding client.  
-- Supports OpenAI/LM Studio (OpenAI-compatible) as well as local llama.cpp embeddings.  
+- Supports OpenAI/LM Studio (OpenAI-compatible), hosted Jina embeddings, and local llama.cpp embeddings.  
 - Defaults to OpenAI embeddings (e.g., `text-embedding-3-large`) and trawls context7-managed credentials when available.  
    - Provider can be switched via settings (Cohere, Jina, HuggingFace).
 4. **Vector storage** (`MilvusVectorStore`)  

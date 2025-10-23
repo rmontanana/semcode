@@ -65,9 +65,10 @@ Run a local Milvus instance (Docker Compose or Zilliz Cloud). Update the `.env` 
 Ensure `tree-sitter-languages` is installed (included in required dependencies). If you build custom grammars, update `TreeSitterChunker.SUPPORTED_LANGUAGES`.
 
 ### Choosing Embedding & LLM Providers
-- `SEMCOD_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
+- `SEMCOD_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, `jina`, or `llamacpp`.
   - **OpenAI / LM Studio**: supply `SEMCOD_EMBEDDING_MODEL` and optionally `SEMCOD_EMBEDDING_API_BASE` (e.g., `http://localhost:1234/v1`) plus `SEMCOD_EMBEDDING_API_KEY`. LM Studio exposes an OpenAI-compatible API; set the key to any non-empty string (e.g., `lm-studio`).
     - LM Studio and other OpenAI-compatible gateways may require `SEMCOD_EMBEDDING_USE_TIKTOKEN=false` so the client sends raw text rather than pre-tokenized input.
+  - **Jina**: set `SEMCOD_EMBEDDING_PROVIDER=jina`, choose a supported `SEMCOD_EMBEDDING_MODEL` (defaults to `jina-embeddings-v2-base-en`), and provide a `JINA_API_KEY` via the config `[providers]` block or environment. Update `SEMCOD_EMBEDDING_DIMENSION` to match the selected model (e.g., `768` for `jina-embeddings-v2-base-en`, `2048` for `jina-embeddings-v4`).
   - **llama.cpp**: set `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` to the GGUF file and adjust ctx/threads/batch variables as needed.
   - Set `TOKENIZERS_PARALLELISM=false` when using Hugging Face-backed pipelines (e.g., llama.cpp bindings) to silence tokenizer fork warnings.
 - `SEMCOD_RAG_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.

@@ -4050,7 +4050,7 @@ requires-dist = [
     { name = "transformers", specifier = ">=4.57.1" },
     { name = "tree-sitter", specifier = "==0.20.2" },
     { name = "tree-sitter-languages", specifier = "==1.10.2" },
-    { name = "typer", extras = ["all"], specifier = ">=0.12.3" },
+    { name = "typer", specifier = ">=0.12.3" },
     { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.31.0.20240402" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
     { name = "watchdog", specifier = ">=6.0.0" },
