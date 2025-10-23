@@ -34,6 +34,8 @@ class AppSettings(BaseSettings):
     milvus_uri: str = "http://localhost:19530"
     milvus_username: Optional[str] = None
     milvus_password: Optional[str] = None
+    api_key: Optional[str] = None
+    telemetry_enabled: bool = True
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-3-large"
     embedding_dimension: int = 3072
@@ -50,6 +52,14 @@ class AppSettings(BaseSettings):
     rag_api_base: Optional[str] = None
     rag_api_key: Optional[str] = None
     rag_temperature: float = 0.0
+    rag_system_prompt: str = (
+        "You are a senior software engineer helping teammates understand codebases. "
+        "Use the provided context to answer succinctly and cite files that support your answer."
+    )
+    rag_prompt_template: Optional[str] = None
+    rag_fallback_enabled: bool = True
+    rag_fallback_max_sources: int = 3
+    rag_fallback_summary_sentences: int = 3
     rag_llamacpp_model_path: Optional[Path] = None
     rag_llamacpp_n_ctx: int = 2048
     rag_llamacpp_n_threads: int = 4

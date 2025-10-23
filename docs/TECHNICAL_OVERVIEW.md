@@ -22,7 +22,7 @@ CLI / FastAPI / Streamlit
                 │
                 └─ Milvus / Zilliz Cloud back end
 
-LangChain RetrievalQA + LLM (OpenAI/GPT-4 via context7) sits beside Milvus and serves API/front-end queries.
+Milvus search + LLM synthesis (OpenAI/GPT-4 via context7) sits beside the vector store and serves API/front-end queries.
 ```
 
 Key packages:
@@ -31,8 +31,8 @@ Key packages:
 - `semcod.services.indexer`: Orchestrates ingest → embed → store.
 - `semcod.storage`: Milvus wrapper and JSON registry for ingested repos.
 - `semcod.rag`: Retrieval-Augmented Generation pipeline via LangChain.
-- `semcod.api`: FastAPI application exposing ingestion/query endpoints.
-- `semcod.frontend`: Streamlit UI consuming the API.
+- `semcod.api`: FastAPI application plus shared dependencies, background job manager, and telemetry tracker.
+- `semcod.frontend`: Streamlit UI (enhanced filters/history/diff) and optional Gradio interface.
 
 ---
 
@@ -65,12 +65,12 @@ Key packages:
 These steps are coordinated by `IndexerService.index_repository`, used both by the CLI and API ingestion endpoint.
 
 ### 2.2 Query & RAG Workflow
-- `SemanticSearchPipeline` (LangChain `RetrievalQA`):
-  - Wraps Milvus via LangChain's `Milvus` vector store.  
-  - Configures retriever (`k=5`) for top chunks.  
-  - Uses `ChatOpenAI` (GPT-4 class) to synthesize natural-language answers with code context.  
-  - Returns structured response: answer + source documents (path, repo, language, snippet).
-- The FastAPI `/query` endpoint and Streamlit app reuse this pipeline.
+- `SemanticSearchPipeline` (custom orchestrator):
+  - Embeds questions with the configured LangChain embedding client.  
+  - Runs similarity search directly against Milvus via `MilvusVectorStore.search`.  
+  - Formats the top snippets into a prompt and calls the selected LLM (`ChatOpenAI` or `LlamaCpp`).  
+  - Falls back to summarisation when LLM calls fail, marking responses via `meta.fallback_used`.
+- The FastAPI `/query` endpoint and Streamlit/Gradio apps reuse this pipeline.
 
 ---
 
@@ -91,24 +91,31 @@ CLI uses Typer (`src/semcod/cli.py`). Logging provided by `structlog` via `confi
 ### 3.2 API (`semcod-api`)
 
 - Launch: `uv run semcod-api` or `python -m semcod.api.main`.
-- `GET /healthz`: Simple health probe.
-- `GET /repos`: Reads registry and returns workspace paths, languages, chunk counts.
-- `POST /ingest`: Accepts JSON body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`.  
-  Internally calls `IndexerService.index_repository` with the selected directories.
-- `POST /query`: Accepts `{ "question": "..." }`.  
-  - Validates non-empty input.  
-  - Calls `SemanticSearchPipeline.query`.  
-  - Responds with `answer` + `sources`.
+- **Authentication**: If `SEMCOD_API_KEY` is set, every endpoint (except `/healthz`) requires `X-API-Key` to match.
+- **Repositories**: `GET /repos` reads the registry and returns workspace paths, languages, chunk counts.
+- **Synchronous ingestion**: `POST /ingest` accepts `{ "name": "...", "root": "...", "include": ["..."], "force": false, "ignore": [] }` and blocks until `IndexerService.index_repository` completes.
+- **Asynchronous ingestion**: `POST /jobs/ingest` enqueues the same payload as a background task.  
+  `GET /jobs` lists all jobs, while `GET /jobs/{id}` surfaces per-stage progress (copy/chunk/embed/upsert counters) and final results/errors.
+- **Telemetry**: `GET /telemetry` exposes in-memory counters (ingest/query counts, durations, fallback usage, recent events) when `SEMCOD_TELEMETRY_ENABLED` is true.
+- **Querying**: `POST /query` validates non-empty questions, invokes `SemanticSearchPipeline.query`, and returns answer + sources + metadata (`fallback_used`, `reason` when summarisation is triggered).
 
-FastAPI is run via Uvicorn (`uvicorn.run`). Authentication, rate limits, and background jobs are left for future phases.
+Supporting modules:
+- `semcod.api.dependencies`: reusable dependencies (API-key enforcement, telemetry toggle).
+- `semcod.api.jobs`: thread-safe `JobManager` + `JobInfo` dataclass for background ingestion.
+- `semcod.api.telemetry`: in-memory telemetry store exposed via `/telemetry`.
 
 ### 3.3 Streamlit (`semcod-streamlit`)
 
 - Launch: `uv run semcod-streamlit`.
-- Behavior:
-  - Sidebar: lists repositories from `/repos`.
-  - Main pane: accepts question input, posts to `/query`, and renders response with syntax-highlighted code snippets.
-- Uses `requests` for HTTP calls. Errors surface via Streamlit notifications.
+- Sidebar: configure API root / API key, inspect repositories, choose repo/language filters, browse query history.
+- Main pane: enter questions, view highlighted responses, filter sources, inspect fallback warnings, and compare snippets via an inline diff tool.
+- All HTTP traffic flows through the FastAPI layer using the same `X-API-Key` convention when configured.
+
+### 3.4 Gradio (`semcod-gradio`)
+
+- Optional UI activated with `uv pip install .[ui]` followed by `semcod-gradio`.
+- Provides textbox inputs for API root/key, question, and optional repo/language filters.  
+  Results surface as an answer textbox, metadata summary, and tabular source listing.
 
 ---
 
@@ -124,6 +131,13 @@ FastAPI is run via Uvicorn (`uvicorn.run`). Authentication, rate limits, and bac
 | `SEMCOD_EMBEDDING_DIMENSION` | Optional | Dimension for embeddings (default `3072`). Must match provider output. |
 | `SEMCOD_EMBEDDING_USE_TIKTOKEN` | Optional | When `false`, disables token pre-processing (required for some OpenAI-compatible servers such as LM Studio). |
 | `SEMCOD_DEFAULT_LLM` | Optional | Model alias used by LangChain (`"gpt-4o"` by default). |
+| `SEMCOD_API_KEY` | Optional | Secret required by the FastAPI, Streamlit, and Gradio clients (header `X-API-Key`). |
+| `SEMCOD_TELEMETRY_ENABLED` | Optional | Toggle in-memory telemetry endpoints (default `true`). |
+| `SEMCOD_EMBEDDING_BATCH_SIZE` | Optional | Batch size for embedding requests (default `64`). |
+| `SEMCOD_MILVUS_UPSERT_BATCH_SIZE` | Optional | Batch size for Milvus upserts (default `128`). |
+| `SEMCOD_RAG_SYSTEM_PROMPT` / `SEMCOD_RAG_PROMPT_TEMPLATE` | Optional | Customize the assistant persona or full RAG prompt text. |
+| `SEMCOD_RAG_FALLBACK_ENABLED` | Optional | Enable summarisation fallback when LLM calls fail (default `true`). |
+| `SEMCOD_RAG_FALLBACK_MAX_SOURCES` / `SEMCOD_RAG_FALLBACK_SUMMARY_SENTENCES` | Optional | Control fallback context coverage and summary verbosity. |
 | Embedding provider keys | `OPENAI_API_KEY`, `COHERE_API_KEY`, etc. | Consumed by LangChain + context7 wrappers. `AppSettings` allows extra env values. |
 
 `src/semcod/settings.py` uses Pydantic Settings to load these values. Extra env vars are accepted for third-party client libraries.
@@ -140,7 +154,7 @@ Core runtime dependencies from `pyproject.toml`:
 - **RAG tooling**: `langsmith` (observability), `httpx`, `requests`.
 - **CLI & config**: `typer[all]`, `pydantic`, `pydantic-settings`, `python-dotenv`, `SQLAlchemy`, `alembic` (reserved for future persistent registry backends).
 - **Observability**: `structlog`, `rich`.
-- **Frontend**: `streamlit`.
+- **Frontend**: `streamlit`; optional `gradio` via the `ui` extra.
 
 Dev/test dependencies (optional extra): `pytest`, `pytest-asyncio`, `ruff`, `mypy`, `types-requests`.
 
@@ -174,7 +188,7 @@ Optional future integrations (placeholders in project plan):
 | `src/semcod/embeddings/` | LangChain embedding factory, payload models. |
 | `src/semcod/storage/` | Milvus vector store wrapper and repository registry. |
 | `src/semcod/services/indexer.py` | Orchestrated ingestion/embedding service. |
-| `src/semcod/rag/pipeline.py` | LangChain RetrievalQA pipeline. |
+| `src/semcod/rag/pipeline.py` | Custom Milvus-backed RAG pipeline. |
 | `src/semcod/api/main.py` | FastAPI application with REST endpoints. |
 | `src/semcod/frontend/app.py` | Streamlit user interface. |
 | `tests/test_chunker.py` | Smoke test for chunker fallback. |
@@ -189,7 +203,7 @@ Optional future integrations (placeholders in project plan):
 - **Local models**: When using llama.cpp, point `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` / `SEMCOD_RAG_LLAMACPP_MODEL_PATH` to your GGUF files and align ctx / thread counts with your hardware. LM Studio integrations use the OpenAI-compatible HTTP interface (`SEMCOD_*_API_BASE`).
 - **Tokenizer warnings**: Some local stacks emit Hugging Face tokenizer fork warnings. Set `TOKENIZERS_PARALLELISM=false` if the log noise is problematic.
 - **Context7 integration**: When extending the system, use context7 docs to fetch LangChain / Tree-sitter references as part of the development workflow.
-- **Extensibility roadmap**: The README tracks future phases (auth, async tasks, advanced UI, integration tests, CI).
+- **Extensibility roadmap**: The README tracks remaining phases (tests, CI, packaging); phases 4–5 (auth/async/telemetry + advanced UI) are now complete.
 
 ---
 

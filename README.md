@@ -5,10 +5,10 @@
 ## Features
 - Repository ingestion CLI with workspace management and registry tracking.
 - Tree-sitter driven chunking (C++/Python) with optional Code2Prompt refinement.
-- Pluggable embeddings via LangChain (OpenAI, Cohere, Jina, Hugging Face) and Milvus vector storage.
-- Retrieval-Augmented Generation pipeline using LangChain + GPT-4-class models.
-- FastAPI service for ingestion, search, and observability endpoints.
-- Streamlit frontend for interactive semantic search with source attributions.
+- Pluggable embeddings via LangChain (OpenAI, Cohere, Jina, Hugging Face, LM Studio, llama.cpp) and Milvus vector storage.
+- Retrieval-Augmented Generation pipeline that embeds via LangChain, queries Milvus directly, and synthesises answers with configurable prompts plus graceful fallback summarisation.
+- FastAPI service with optional API-key auth, asynchronous ingestion jobs, and telemetry snapshots.
+- Streamlit frontend with repo/language filters, query history, diff view, plus an optional Gradio alternative.
 
 ## Architecture
 | Layer | Stack |
@@ -16,7 +16,7 @@
 | Parsing & Chunking | Tree-sitter, Code2Prompt, LangChain text splitters |
 | Embeddings | LangChain wrappers for OpenAI / Cohere / Jina / Hugging Face |
 | Vector Database | Milvus (self-hosted or Zilliz Cloud) via PyMilvus |
-| Query & RAG | LangChain RetrievalQA, FastAPI, GPT-4/Claude 3.5 via context7 integrations |
+| Query & RAG | LangChain embeddings + custom Milvus RAG orchestrator, FastAPI, GPT-4/Claude 3.5 via context7 integrations |
 | Visualization | Streamlit client (optionally Gradio in future roadmap) |
 
 ```
@@ -34,7 +34,7 @@ src/semcod/
   ingestion/     Workspace + repository preparation manager
   services/      IndexerService orchestrating full pipeline
   storage/       Milvus wrapper & repository registry
-  rag/           RetrievalQA pipeline helpers
+  rag/           Milvus-backed RAG pipeline helpers
   settings.py    Pydantic settings shared across layers
   cli.py         Typer CLI commands (ingest, list, workspace)
 ```
@@ -55,6 +55,8 @@ src/semcod/
    - `OPENAI_API_KEY` (or alternative provider keys supported by LangChain).
    - `SEMCOD_EMBEDDING_MODEL` – defaults to `text-embedding-3-large`; align with Milvus dimension.
    - `SEMCOD_MILVUS_URI` plus optional username/password for Milvus.
+   - `SEMCOD_API_KEY` – optional API key enforced by the FastAPI layer and UIs.
+   - `SEMCOD_TELEMETRY_ENABLED=false` to disable in-memory telemetry snapshots (defaults to `true`).
 
 ### Milvus
 Run a local Milvus instance (Docker Compose or Zilliz Cloud). Update the `.env` file with connection details. The `IndexerService` will lazily create the `semcod_chunks` collection with an IVF_FLAT index on first run.
@@ -72,6 +74,9 @@ Ensure `tree-sitter-languages` is installed (included in required dependencies).
   - **OpenAI / LM Studio**: configure `SEMCOD_RAG_MODEL`, `SEMCOD_RAG_API_BASE`, `SEMCOD_RAG_API_KEY`, and optional `SEMCOD_RAG_TEMPERATURE`.
   - **llama.cpp**: set `SEMCOD_RAG_LLAMACPP_MODEL_PATH` (or reuse the embedding path), ctx/threads, and optionally temperature.
 - Ensure `SEMCOD_EMBEDDING_DIMENSION` matches the embedding model output (3072 for `text-embedding-3-large`; update if you switch providers).
+- Prompt tuning and fallbacks:
+  - Override `SEMCOD_RAG_SYSTEM_PROMPT` or supply a custom `SEMCOD_RAG_PROMPT_TEMPLATE` to tailor the assistant persona.
+  - Toggle summarisation fallback via `SEMCOD_RAG_FALLBACK_ENABLED` (default `true`) and adjust snippet coverage with `SEMCOD_RAG_FALLBACK_MAX_SOURCES` / `SEMCOD_RAG_FALLBACK_SUMMARY_SENTENCES`.
 
 ## CLI Usage
 ```bash
@@ -104,24 +109,37 @@ Run the service:
 semcod-api
 ```
 
+All endpoints (except `/healthz`) honor the optional `SEMCOD_API_KEY`. When set, include
+`X-API-Key: <value>` in requests.
+
 Endpoints:
 - `GET /healthz` – service health.
-- `POST /ingest` – body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`; triggers end-to-end indexing over selected folders.
 - `GET /repos` – list indexed repositories with language + chunk metadata.
-- `POST /query` – body `{ "question": "How do we initialize the cache?" }`; returns answer + source snippets.
+- `POST /ingest` – body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`; runs ingestion synchronously and returns repository metadata.
+- `POST /jobs/ingest` – same payload as `/ingest`, but enqueues an asynchronous job and returns a job descriptor immediately.
+- `GET /jobs` / `GET /jobs/{job_id}` – inspect active and completed ingestion tasks, including stage-by-stage progress.
+- `GET /telemetry` – snapshot of ingestion/query counters and recent events (disabled when `SEMCOD_TELEMETRY_ENABLED=false`).
+- `POST /query` – body `{ "question": "How do we initialize the cache?" }`; returns answer, supporting sources, and metadata describing whether the response came from the LLM or the summarisation fallback.
 
 ## Streamlit Frontend
 ```bash
 semcod-streamlit
 ```
-The app calls the FastAPI service to display repositories, run semantic search queries, and show highlighted code snippets with language detection.
+Use the sidebar to set the API root/key, filter repositories or languages, review query history, and compare result snippets via the diff view. The main panel displays answers, highlights fallback usage, and lists filtered sources.
+
+## Gradio Frontend (optional)
+```bash
+uv pip install .[ui]  # installs gradio if not already available
+semcod-gradio
+```
+Launches a browser-based alternative UI with API configuration fields, optional repo/language filters, and a tabular view of retrieved snippets.
 
 ## Development Roadmap
 - Phase 1 ✅ – Project scaffolding, `pyproject.toml`, configuration, CLI entry points.
 - Phase 2 ✅ – Repository ingestion, language detection, Tree-sitter chunking, Code2Prompt hooks.
 - Phase 3 ✅ – Embedding provider abstraction, Milvus wrapper, registry tracking, IndexerService.
-- Phase 4 🚧 – Expand FastAPI endpoints (auth, async jobs, telemetry), enrich prompts and LLM fallback logic.
-- Phase 5 🚧 – Streamlit UX enhancements (filters, history, diff view) and optional Gradio alternative.
+- Phase 4 ✅ – FastAPI auth + async ingestion jobs + telemetry endpoints, plus prompt customization and LLM fallback logic.
+- Phase 5 ✅ – Streamlit filters/history/diff tooling and an optional Gradio interface.
 - Phase 6 🚧 – Additional documentation, integration tests, docker-compose examples, CI workflows.
 
 ## Testing
