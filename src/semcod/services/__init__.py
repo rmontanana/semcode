@@ -1,6 +1,6 @@
 """
 Service layer orchestrators for the semantic code search engine.
 """
-from .indexer import IndexerService
+from .indexer import IndexerService, IndexingCallbacks
 
-__all__ = ["IndexerService"]
+__all__ = ["IndexerService", "IndexingCallbacks"]

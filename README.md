@@ -87,13 +87,16 @@ semcod workspace --path ./new-workspace                            # change work
 - `--name/-n`: logical label stored with every chunk and registry entry.
 - `--include/-I`: comma-separated folders (relative to `--root`, default `.`) copied into the workspace.
 
-Before copying, the CLI prints a depth-2 tree for each include path. A default ignore set is always applied (`.git`, `.svn`, `.vscode`, `.idea`, `__pycache__`, `node_modules`, `.venv`, `venv`, `build*`, `dist`, caches, etc.). Provide `--ignore/-i` with comma-separated patterns to append to that list, and `-y/--yes` to skip confirmation prompts.
+Before copying, the CLI prints a depth-2 tree for each include path. A default ignore set is always applied (`.*`, `.git`, `.svn`, `.vscode`, `.idea`, `__pycache__`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `node_modules`, `vcpkg_installed`, `.venv`, `venv`, `build*`, `dist`, `CMakeFiles`, `tmp`, etc.). Provide `--ignore/-i` with comma-separated patterns to append to that list, and `-y/--yes` to skip confirmation prompts.
 
 Optional flags:
 - `--root/-r`: change the root directory (default: current working directory).
 - `--ignore/-i`: additional comma-separated patterns appended to the default ignore list.
 - `--force`: overwrite an existing workspace copy.
+- `--log`: redirect detailed logs to `ingestion.log` under the root directory.
 - `--yes/-y`: skip the confirmation prompt.
+
+During ingestion a progress bar tracks copying, chunking, embedding, and upserting, updating the current file/action as it runs.
 
 ## API
 Run the service:

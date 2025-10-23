@@ -20,6 +20,28 @@ from ..chunking.code2prompt_adapter import apply_code2prompt_heuristics
 
 log = get_logger(__name__)
 
+DEFAULT_IGNORE_PATTERNS: Sequence[str] = (
+    ".*",
+    ".git",
+    ".hg",
+    ".svn",
+    ".idea",
+    ".vscode",
+    ".DS_Store",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "build*",
+    "dist",
+    "tmp",
+    "vcpkg_installed",
+    "CMakeFiles",
+)
+
 
 @dataclass
 class RepositoryMetadata:
@@ -46,6 +68,7 @@ class RepositoryIngestionManager:
         repo_name: str,
         force: bool = False,
         ignore_dirs: Optional[Iterable[str]] = None,
+        copy_callback: Optional[Callable[[Path], None]] = None,
     ) -> RepositoryMetadata:
         """
         Ingest one or more directories already available on disk.
@@ -60,7 +83,8 @@ class RepositoryIngestionManager:
             resolved_sources.append(src.resolve())
 
         target = self.workspace / repo_name
-        ignore_patterns = tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
+        combined_ignores = list(dict.fromkeys(DEFAULT_IGNORE_PATTERNS + tuple(name.strip() for name in (ignore_dirs or []) if name.strip())))
+        ignore_patterns = tuple(combined_ignores)
 
         if target.exists():
             if not force:
@@ -73,6 +97,12 @@ class RepositoryIngestionManager:
 
         def ignore_func(_src: str, names: Iterable[str]) -> List[str]:
             return [name for name in names if any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)]
+
+        def copy_with_callback(src_path: str, dst_path: str, *, follow_symlinks: bool = True) -> str:
+            shutil.copy2(src_path, dst_path, follow_symlinks=follow_symlinks)
+            if copy_callback:
+                copy_callback(Path(dst_path))
+            return dst_path
 
         for src in resolved_sources:
             if any(fnmatch.fnmatch(src.name, pattern) for pattern in ignore_patterns):
@@ -90,10 +120,17 @@ class RepositoryIngestionManager:
                     destination=str(destination),
                     ignore=list(ignore_patterns) if ignore_patterns else None,
                 )
-                shutil.copytree(src, destination, ignore=ignore_func if ignore_patterns else None)
+                shutil.copytree(
+                    src,
+                    destination,
+                    ignore=ignore_func if ignore_patterns else None,
+                    copy_function=copy_with_callback if copy_callback else shutil.copy2,
+                )
             else:
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, destination)
+                if copy_callback:
+                    copy_callback(destination)
 
         languages = self._detect_languages(target)
         metadata = RepositoryMetadata(name=repo_name, path=target, languages=languages)
@@ -116,7 +153,11 @@ class RepositoryIngestionManager:
             if path.suffix.lower() in {".py", ".cpp", ".cxx", ".cc", ".hpp", ".hxx", ".hh"}:
                 yield path
 
-    def chunk_repository(self, repo: RepositoryMetadata) -> List[CodeChunk]:
+    def chunk_repository(
+        self,
+        repo: RepositoryMetadata,
+        progress_callback: Optional[Callable[[Path], None]] = None,
+    ) -> List[CodeChunk]:
         """
         Generate code chunks for the given repository.
 
@@ -125,7 +166,7 @@ class RepositoryIngestionManager:
         """
         files = list(self.iter_source_files(repo))
         log.info("chunking_repository", repo=repo.name, files=len(files))
-        raw_chunks: List[CodeChunk] = self.chunker.chunk_repository(files)
+        raw_chunks: List[CodeChunk] = self.chunker.chunk_repository(files, progress_callback=progress_callback)
         refined = apply_code2prompt_heuristics(raw_chunks)
         log.info("chunks_ready", repo=repo.name, chunks=len(refined))
         return refined

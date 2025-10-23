@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 
 from tree_sitter import Language, Parser, Node  # type: ignore[import]
 
@@ -117,17 +117,26 @@ class TreeSitterChunker:
             log.warning("symbol_detection_failed")
         return None
 
-    def chunk_repository(self, files: Iterable[Path]) -> List[CodeChunk]:
+    def chunk_repository(
+        self,
+        files: Iterable[Path],
+        progress_callback: Optional[Callable[[Path], None]] = None,
+    ) -> List[CodeChunk]:
         """Chunk all provided files, skipping unsupported extensions."""
         results: List[CodeChunk] = []
         for path in files:
             language = self._guess_language(path)
             if not language:
+                if progress_callback:
+                    progress_callback(path)
                 continue
             try:
                 results.extend(self.chunk_file(path, language))
             except ValueError:
                 log.warning("chunk_skipped_unsupported_language", file=str(path))
+            finally:
+                if progress_callback:
+                    progress_callback(path)
         return results
 
     @staticmethod

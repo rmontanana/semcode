@@ -18,6 +18,13 @@ log = get_logger(__name__)
 
 
 @dataclass
+class IndexingCallbacks:
+    copy: Optional[Callable[[Path], None]] = None
+    chunk: Optional[Callable[[Path], None]] = None
+    stage: Optional[Callable[[str], None]] = None
+
+
+@dataclass
 class IndexingResult:
     repository: RepositoryMetadata
     chunk_count: int
@@ -57,24 +64,47 @@ class IndexerService:
         name: str,
         force: bool = False,
         ignore_dirs: Optional[Sequence[str]] = None,
+        callbacks: Optional[IndexingCallbacks] = None,
     ) -> IndexingResult:
         """Execute full indexing workflow for the selected directories."""
+        cb = callbacks or IndexingCallbacks()
+        if cb.stage:
+            cb.stage("copy_started")
         repo_metadata = self.ingestion_manager.ingest_sources(
             sources=paths,
             repo_name=name,
             force=force,
             ignore_dirs=ignore_dirs,
+            copy_callback=cb.copy,
         )
-        chunks = self.ingestion_manager.chunk_repository(repo_metadata)
+        if cb.stage:
+            cb.stage("copy_completed")
+        if cb.stage:
+            cb.stage("chunk_started")
+        chunks = self.ingestion_manager.chunk_repository(repo_metadata, progress_callback=cb.chunk)
+        if cb.stage:
+            cb.stage("chunk_completed")
+        if cb.stage:
+            cb.stage("embedding_started")
         payloads = self._build_payloads(repo_metadata, chunks)
+        if cb.stage:
+            cb.stage("embedding_completed")
 
+        if cb.stage:
+            cb.stage("upsert_started")
+        upsert_success = False
         if self._connected or self._ensure_connection():
             try:
                 self.vector_store.upsert_embeddings(payloads)
             except Exception as exc:  # pragma: no cover - requires Milvus env
                 log.error("milvus_upsert_failed", error=str(exc))
+            else:
+                upsert_success = True
         else:  # pragma: no cover - development fallback
             log.warning("milvus_unavailable_skip_upsert")
+            upsert_success = True
+        if cb.stage:
+            cb.stage("upsert_completed" if upsert_success else "upsert_failed")
 
         record = RepositoryRecord(
             name=repo_metadata.name,

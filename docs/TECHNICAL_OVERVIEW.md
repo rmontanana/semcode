@@ -81,6 +81,8 @@ These steps are coordinated by `IndexerService.index_repository`, used both by t
 | Command | Internal Flow | Notes |
 | ------- | ------------- | ----- |
 | `semcod ingest --name NAME --root ROOT --include a,b [--ignore x,y] [-y]` | Instantiates `IndexerService` → `index_repository` → ingestion + chunking + embedding + Milvus upsert → registry update. Prints a preview tree, applies default ignores (e.g., `.git`, `.venv`, `build*`), and accepts additional include/ignore lists before copying. | Requires access to Milvus and embedding provider keys. |
+Default ingest ignores include hidden folders (`.*`), virtual environments (`.venv`, `venv`), build artifacts (`build*`, `dist`, `CMakeFiles`, `tmp`), caches (`__pycache__`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`), dependency folders (`node_modules`, `vcpkg_installed`), and more; provide `--ignore/-i` to append patterns or `--log` to capture detailed progress in `ingestion.log`.
+
 | `semcod list` | Loads registry (`RepositoryRegistry.list`) and prints repository metadata. | Shows chunk counts, languages, revisions. |
 | `semcod workspace [--path NEW_PATH]` | Prints current workspace or updates `SEMCOD_WORKSPACE_ROOT`. | Setting change persists in env, not config file. |
 
