@@ -3,13 +3,14 @@ Optional Gradio interface for the semantic code search engine.
 """
 from __future__ import annotations
 
-import os
 from typing import Dict, List, Optional
 
 import requests
 
-DEFAULT_API_ROOT = os.getenv("SEMCOD_API_ROOT", "http://localhost:8000")
-DEFAULT_API_KEY = os.getenv("SEMCOD_API_KEY")
+from ..settings import settings
+
+DEFAULT_API_ROOT = settings.frontend_api_root
+DEFAULT_API_KEY = settings.frontend_api_key
 API_KEY_HEADER = "X-API-Key"
 
 

@@ -1,17 +1,27 @@
 """
 Streamlit interface for the semantic code search engine (Phase 5 enhancements).
 """
+
 from __future__ import annotations
 
 import difflib
-import os
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import requests
 import streamlit as st
 
-DEFAULT_API_ROOT = os.getenv("SEMCOD_API_ROOT", "http://localhost:8000")
-DEFAULT_API_KEY = os.getenv("SEMCOD_API_KEY")
+try:
+    from ..settings import settings
+except ImportError:  # When executed as a plain script via `streamlit run`
+    import sys
+    project_root = Path(__file__).resolve().parents[2]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    from semcod.settings import settings  # type: ignore  # noqa: E402
+
+DEFAULT_API_ROOT = settings.frontend_api_root
+DEFAULT_API_KEY = settings.frontend_api_key
 API_KEY_HEADER = "X-API-Key"
 HISTORY_LIMIT = 20
 
@@ -94,9 +104,22 @@ def _render_diff(sources: List[Dict]) -> None:
     if len(sources) < 2:
         return
 
-    options = [f"{idx+1}. {src.get('repo', 'Unknown')} · {src.get('path', 'Unknown')}" for idx, src in enumerate(sources)]
-    left_idx = st.selectbox("Left snippet", range(len(sources)), format_func=lambda i: options[i], key="diff-left")
-    right_idx = st.selectbox("Right snippet", range(len(sources)), format_func=lambda i: options[i], key="diff-right")
+    options = [
+        f"{idx+1}. {src.get('repo', 'Unknown')} · {src.get('path', 'Unknown')}"
+        for idx, src in enumerate(sources)
+    ]
+    left_idx = st.selectbox(
+        "Left snippet",
+        range(len(sources)),
+        format_func=lambda i: options[i],
+        key="diff-left",
+    )
+    right_idx = st.selectbox(
+        "Right snippet",
+        range(len(sources)),
+        format_func=lambda i: options[i],
+        key="diff-right",
+    )
 
     if left_idx == right_idx:
         st.info("Select two different snippets to generate a diff.")
@@ -143,17 +166,24 @@ def run() -> None:
         try:
             repos = _fetch_repositories(api_root, api_key or None)
             repo_names = sorted({repo["name"] for repo in repos})
-            languages = sorted({lang for repo in repos for lang in (repo.get("languages") or [])})
+            languages = sorted(
+                {lang for repo in repos for lang in (repo.get("languages") or [])}
+            )
         except Exception as exc:  # pragma: no cover - UI feedback only
             st.error(f"Failed to load repositories: {exc}")
 
         selected_repos = st.multiselect("Filter repos", repo_names, default=repo_names)
         language_options = languages or ["Unknown"]
-        selected_languages = st.multiselect("Filter languages", language_options, default=language_options)
+        selected_languages = st.multiselect(
+            "Filter languages", language_options, default=language_options
+        )
 
         _render_history()
 
-    question = st.text_input("Ask a question about your codebase", value=st.session_state.get("last_question", ""))
+    question = st.text_input(
+        "Ask a question about your codebase",
+        value=st.session_state.get("last_question", ""),
+    )
     col_search, col_reset = st.columns([1, 1])
     with col_search:
         trigger_search = st.button("Search", use_container_width=True)
@@ -185,12 +215,16 @@ def run() -> None:
     answer_text = result.get("answer", "No answer generated.")
     fallback_used = meta.get("fallback_used", False)
     if fallback_used:
-        st.warning(f"Fallback answer generated: {meta.get('reason', 'LLM unavailable')}")
+        st.warning(
+            f"Fallback answer generated: {meta.get('reason', 'LLM unavailable')}"
+        )
     st.write(answer_text)
 
     st.subheader("Sources")
     sources = result.get("sources", [])
-    filtered_sources = _filter_sources(sources, selected_repos or [], selected_languages or [])
+    filtered_sources = _filter_sources(
+        sources, selected_repos or [], selected_languages or []
+    )
     if not filtered_sources:
         st.info("No sources match the current filters.")
     for source in filtered_sources:

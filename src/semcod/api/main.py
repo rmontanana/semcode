@@ -295,4 +295,9 @@ def _record_query_telemetry(start_time: float, ok: bool, fallback_used: bool) ->
 
 def run() -> None:
     """CLI entrypoint to run the FastAPI server."""
-    uvicorn.run("semcod.api.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(
+        "semcod.api.main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=False,
+    )

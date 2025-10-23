@@ -63,7 +63,7 @@ Documentation = "https://example.com/semcod/docs"
 [project.scripts]
 semcod = "semcod.cli:app"
 semcod-api = "semcod.api.main:run"
-semcod-streamlit = "semcod.frontend.app:run"
+semcod-streamlit = "semcod.frontend.cli:main"
 semcod-gradio = "semcod.frontend.gradio_app:run"
 
 [tool.hatch.metadata]

@@ -1,0 +1,58 @@
+[workspace]
+root = "./workspace"
+
+[milvus]
+uri = "http://localhost:19530"
+username = ""
+password = ""
+
+[embedding]
+provider = "openai"
+model = "text-embedding-3-large"
+dimension = 3072
+api_base = ""
+api_key = ""
+use_tiktoken = true
+
+[embedding.llamacpp]
+model_path = ""
+n_ctx = 2048
+n_threads = 4
+batch_size = 256
+
+[rag]
+provider = "openai"
+model = "gpt-4o"
+api_base = ""
+api_key = ""
+temperature = 0.0
+
+[rag.llamacpp]
+model_path = ""
+n_ctx = 2048
+n_threads = 4
+
+[general]
+telemetry_enabled = true
+api_key = ""
+
+[environment]
+tokenizers_parallelism = false
+
+[providers]
+openai_api_key = "sk-..."
+cohere_api_key = ""
+jina_api_key = ""
+huggingfacehub_api_token = ""
+
+[ingestion]
+chunk_chars_per_token_estimate = 1.0
+
+[api]
+host = "0.0.0.0"
+port = 8000
+
+[frontend]
+api_root = "http://localhost:8000"
+api_key = ""
+port = 8501
