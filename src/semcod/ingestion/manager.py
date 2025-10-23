@@ -60,7 +60,22 @@ class RepositoryIngestionManager:
         self.workspace = workspace or settings.workspace_root
         self.workspace.mkdir(parents=True, exist_ok=True)
         log.info("workspace_initialized", workspace=str(self.workspace))
-        self.chunker = TreeSitterChunker()
+        self.chunker = TreeSitterChunker(
+            max_chars_per_chunk=self._derive_max_chars_per_chunk(),
+        )
+
+    @staticmethod
+    def _derive_max_chars_per_chunk() -> int:
+        limit = TreeSitterChunker.DEFAULT_MAX_CHARS_PER_CHUNK
+        provider = (settings.embedding_provider or "").lower()
+        if provider in {"llamacpp", "lmstudio"}:
+            context_window = settings.embedding_llamacpp_n_ctx
+            if context_window:
+                estimate = getattr(settings, "chunk_chars_per_token_estimate", 1.0)
+                derived = int(context_window * estimate)
+                if derived > 0:
+                    limit = min(limit, max(512, derived))
+        return limit
 
     def ingest_sources(
         self,

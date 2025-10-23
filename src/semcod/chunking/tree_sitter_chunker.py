@@ -60,10 +60,16 @@ class TreeSitterChunker:
     """Tree-sitter powered chunker for supported languages."""
 
     SUPPORTED_LANGUAGES = {"python": "python", "cpp": "cpp"}
-    MAX_LINES_PER_CHUNK = 200
-    MAX_CHARS_PER_CHUNK = 6000
+    DEFAULT_MAX_LINES_PER_CHUNK = 200
+    DEFAULT_MAX_CHARS_PER_CHUNK = 6000
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        max_lines_per_chunk: int = DEFAULT_MAX_LINES_PER_CHUNK,
+        max_chars_per_chunk: int = DEFAULT_MAX_CHARS_PER_CHUNK,
+    ) -> None:
+        self.max_lines_per_chunk = max_lines_per_chunk
+        self.max_chars_per_chunk = max_chars_per_chunk
         self.parsers: dict[str, Parser] = {}
 
     def _get_parser(self, language_key: str) -> Parser:
@@ -239,7 +245,10 @@ class TreeSitterChunker:
         for idx, line in enumerate(lines):
             line_len = len(line) + 1  # include newline
             line_count = idx - start
-            if idx > start and (line_count >= self.MAX_LINES_PER_CHUNK or (char_count + line_len) > self.MAX_CHARS_PER_CHUNK):
+            if idx > start and (
+                line_count >= self.max_lines_per_chunk
+                or (char_count + line_len) > self.max_chars_per_chunk
+            ):
                 segments.append((start, idx))
                 start = idx
                 char_count = 0
@@ -253,6 +262,9 @@ class TreeSitterChunker:
         if not text:
             return []
         length = len(text)
-        if length <= self.MAX_CHARS_PER_CHUNK:
+        if length <= self.max_chars_per_chunk:
             return [text]
-        return [text[i : i + self.MAX_CHARS_PER_CHUNK] for i in range(0, length, self.MAX_CHARS_PER_CHUNK)]
+        return [
+            text[i : i + self.max_chars_per_chunk]
+            for i in range(0, length, self.max_chars_per_chunk)
+        ]
