@@ -7,14 +7,15 @@ consumers and CLI/API entry points can share consistent logging.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Iterable, Optional
 
 import structlog
+from structlog.typing import Processor
 
 
 def _configure_structlog() -> None:
     """Initialize structlog with console-friendly formatting."""
-    processors = [
+    processors: Iterable[Processor] = [
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.add_log_level,
         structlog.processors.StackInfoRenderer(),

@@ -87,19 +87,19 @@ def ingest(
 
     if not root.exists():
         typer.echo(f"[ERROR] Root path not found: {root}")
-        raise typer.Exit(code=typer.ExitCode(2))
+        raise typer.Exit(code=2)
 
     selected_paths = []
     for folder in include_dirs:
         candidate = root / folder
         if not candidate.exists():
             typer.echo(f"[ERROR] Included folder not found: {candidate}")
-            raise typer.Exit(code=typer.ExitCode(2))
+            raise typer.Exit(code=2)
         selected_paths.append(candidate)
 
     if not selected_paths:
         typer.echo("[ERROR] No include directories were resolved.")
-        raise typer.Exit(code=typer.ExitCode(2))
+        raise typer.Exit(code=2)
 
     typer.echo(f"Planned ingestion tree for repository '{name}' (depth=2):")
     typer.echo(f"Root: {root.resolve()}")

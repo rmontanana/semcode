@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from langchain.chains import RetrievalQA
-from langchain_community.vectorstores import Milvus as LangChainMilvus  # type: ignore
+from langchain.chains import RetrievalQA  # type: ignore[import-not-found]
+from langchain.embeddings.base import Embeddings  # type: ignore[import-not-found]
+from langchain_community.vectorstores import Milvus as LangChainMilvus  # type: ignore[import-not-found]
 
 from ..embeddings import EmbeddingProviderFactory
 from ..logger import get_logger
@@ -27,7 +28,7 @@ class SemanticSearchPipeline:
         llm_model: str | None = None,
     ) -> None:
         self.collection_name = collection_name
-        self.embedding = EmbeddingProviderFactory.create()
+        self.embedding: Embeddings = EmbeddingProviderFactory.create()
         self.llm_model = llm_model or settings.rag_model
 
     def _build_chain(self) -> RetrievalQA:

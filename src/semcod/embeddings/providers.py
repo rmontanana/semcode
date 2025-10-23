@@ -7,7 +7,7 @@ different vendors by configuration.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Protocol
+from typing import Any, List
 
 from langchain.embeddings.base import Embeddings
 
@@ -15,16 +15,6 @@ from ..logger import get_logger
 from ..settings import settings
 
 log = get_logger(__name__)
-
-
-class EmbeddingAdapter(Protocol):
-    """Protocol representing a pluggable embeddings client."""
-
-    def embed_documents(self, texts: Iterable[str]) -> List[List[float]]:
-        ...
-
-    def embed_query(self, text: str) -> List[float]:
-        ...
 
 
 @dataclass
@@ -41,7 +31,7 @@ class EmbeddingProviderFactory:
     """Factory that returns embedding clients based on configuration."""
 
     @staticmethod
-    def create(provider: str | None = None, model: str | None = None) -> EmbeddingAdapter:
+    def create(provider: str | None = None, model: str | None = None) -> Embeddings:
         provider_name = (provider or settings.embedding_provider).lower()
 
         if provider_name in {"openai", "lmstudio"} or provider_name.startswith("openai"):
@@ -77,11 +67,21 @@ class EmbeddingProviderFactory:
                 )
 
             log.info("initializing_llamacpp_embeddings", model_path=str(model_path))
-            return LlamaCppEmbeddings(
-                model_path=str(model_path),
-                n_ctx=settings.embedding_llamacpp_n_ctx,
-                n_threads=settings.embedding_llamacpp_n_threads,
-                batch_size=settings.embedding_llamacpp_batch_size,
-            )
+            llama_kwargs: dict[str, Any] = {
+                "model_path": str(model_path),
+                "n_ctx": settings.embedding_llamacpp_n_ctx,
+                "n_threads": settings.embedding_llamacpp_n_threads,
+                "n_parts": -1,
+                "seed": 0,
+                "f16_kv": True,
+                "logits_all": False,
+                "vocab_only": False,
+                "use_mlock": False,
+                "n_batch": settings.embedding_llamacpp_batch_size,
+                "n_gpu_layers": 0,
+                "verbose": False,
+                "device": "cpu",
+            }
+            return LlamaCppEmbeddings(**llama_kwargs)
 
         raise NotImplementedError(f"Embedding provider not yet supported: {provider_name}")

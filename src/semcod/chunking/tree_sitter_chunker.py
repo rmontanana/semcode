@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Tuple
 
-from tree_sitter import Language, Parser  # type: ignore[import]
+from tree_sitter import Language, Parser, Node  # type: ignore[import]
 
 from ..logger import get_logger
 
@@ -97,7 +97,7 @@ class TreeSitterChunker:
             return self._build_fallback_chunks(path, language)
 
     @staticmethod
-    def _detect_primary_symbol(root_node: Optional["Node"]) -> Optional[str]:
+    def _detect_primary_symbol(root_node: Optional[Node]) -> Optional[str]:
         """
         Try to derive a canonical symbol name for the chunk.
 
