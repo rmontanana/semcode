@@ -31,13 +31,20 @@ def _request(
     url: str,
     *,
     api_key: Optional[str] = None,
-    timeout: int = 30,
+    timeout: Optional[int] = None,
     **kwargs,
 ):
     headers = kwargs.pop("headers", {})
     if api_key:
         headers[API_KEY_HEADER] = api_key
-    response = requests.request(method, url, headers=headers, timeout=timeout, **kwargs)
+    effective_timeout = timeout if timeout is not None else settings.frontend_request_timeout
+    response = requests.request(
+        method,
+        url,
+        headers=headers,
+        timeout=effective_timeout,
+        **kwargs,
+    )
     response.raise_for_status()
     return response
 

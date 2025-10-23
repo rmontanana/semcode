@@ -56,3 +56,4 @@ port = 8000
 api_root = "http://localhost:8000"
 api_key = ""
 port = 8501
+request_timeout = 30

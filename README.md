@@ -127,6 +127,7 @@ Endpoints:
 semcod-streamlit
 ```
 Use the sidebar to set the API root/key, filter repositories or languages, review query history, and compare result snippets via the diff view. The main panel displays answers, highlights fallback usage, and lists filtered sources.
+Both UI clients honour the `[frontend].request_timeout` value in `semcod_settings.toml`, so increase it if long-running queries trigger HTTP timeouts.
 
 ## Gradio Frontend (optional)
 ```bash

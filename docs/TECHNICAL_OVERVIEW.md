@@ -132,6 +132,7 @@ Supporting modules:
 | `SEMCOD_EMBEDDING_USE_TIKTOKEN` | Optional | When `false`, disables token pre-processing (required for some OpenAI-compatible servers such as LM Studio). |
 | `SEMCOD_DEFAULT_LLM` | Optional | Model alias used by LangChain (`"gpt-4o"` by default). |
 | `SEMCOD_API_KEY` | Optional | Secret required by the FastAPI, Streamlit, and Gradio clients (header `X-API-Key`). |
+| `SEMCOD_FRONTEND_REQUEST_TIMEOUT` | Optional | Timeout in seconds for Streamlit/Gradio HTTP calls (default `30`). |
 | `SEMCOD_TELEMETRY_ENABLED` | Optional | Toggle in-memory telemetry endpoints (default `true`). |
 | `SEMCOD_EMBEDDING_BATCH_SIZE` | Optional | Batch size for embedding requests (default `64`). |
 | `SEMCOD_MILVUS_UPSERT_BATCH_SIZE` | Optional | Batch size for Milvus upserts (default `128`). |

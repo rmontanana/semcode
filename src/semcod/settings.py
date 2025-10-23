@@ -75,6 +75,7 @@ class AppSettings(BaseSettings):
     frontend_api_root: str = "http://localhost:8000"
     frontend_api_key: Optional[str] = None
     frontend_port: int = 8501
+    frontend_request_timeout: int = 30
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
@@ -196,6 +197,8 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
             data["frontend_api_key"] = _blank_to_none(frontend["api_key"])
         if "port" in frontend:
             data["frontend_port"] = int(frontend["port"])
+        if "request_timeout" in frontend:
+            data["frontend_request_timeout"] = int(frontend["request_timeout"])
 
     api_section = raw.get("api", {})
     if api_section:
