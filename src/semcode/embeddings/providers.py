@@ -78,7 +78,7 @@ class EmbeddingProviderFactory:
             model_path = settings.embedding_llamacpp_model_path
             if not model_path:
                 raise ValueError(
-                    "Set SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH when using the llama.cpp embedding provider."
+                    "Set SEMCODE_EMBEDDING_LLAMACPP_MODEL_PATH when using the llama.cpp embedding provider."
                 )
 
             log.info("initializing_llamacpp_embeddings", model_path=str(model_path))

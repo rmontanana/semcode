@@ -27,7 +27,7 @@ class SemanticSearchPipeline:
 
     def __init__(
         self,
-        collection_name: str = "semcod_chunks",
+        collection_name: str = "semcode_chunks",
         llm_model: str | None = None,
         fallback_enabled: bool | None = None,
     ) -> None:
@@ -281,7 +281,7 @@ class SemanticSearchPipeline:
             )
             if not model_path:
                 raise ValueError(
-                    "Set SEMCOD_RAG_LLAMACPP_MODEL_PATH (or reuse SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH) "
+                    "Set SEMCODE_RAG_LLAMACPP_MODEL_PATH (or reuse SEMCODE_EMBEDDING_LLAMACPP_MODEL_PATH) "
                     "when using the llama.cpp RAG provider."
                 )
 

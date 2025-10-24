@@ -19,7 +19,7 @@ except ImportError:  # When executed as a plain script via `streamlit run`
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
-    from semcod.settings import settings  # type: ignore  # noqa: E402
+    from semcode.settings import settings  # type: ignore  # noqa: E402
 
 DEFAULT_API_ROOT = settings.frontend_api_root
 DEFAULT_API_KEY = settings.frontend_api_key

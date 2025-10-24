@@ -31,7 +31,7 @@ class AppSettings(BaseSettings):
     """Project-wide settings loaded from env or .env files."""
 
     model_config = SettingsConfigDict(
-        env_prefix="SEMCOD_",
+        env_prefix="SEMCODE_",
         env_nested_delimiter="__",
         extra="allow",
     )
@@ -82,8 +82,8 @@ class AppSettings(BaseSettings):
     api_port: int = 8000
 
 
-_CONFIG_ENV_VAR = "SEMCOD_CONFIG_PATH"
-_DEFAULT_CONFIG_FILE = Path("semcod_settings.toml")
+_CONFIG_ENV_VAR = "SEMCODE_CONFIG_PATH"
+_DEFAULT_CONFIG_FILE = Path("semcode_settings.toml")
 _PROVIDER_ENV_MAPPING = {
     "openai_api_key": "OPENAI_API_KEY",
     "cohere_api_key": "COHERE_API_KEY",

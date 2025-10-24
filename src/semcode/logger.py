@@ -1,5 +1,5 @@
 """
-Logger configuration for the semcod project.
+Logger configuration for the semcode project.
 
 This module integrates structlog with the standard logging module so CLI/API
 entry points can choose between silent stdout or rich console/file output.

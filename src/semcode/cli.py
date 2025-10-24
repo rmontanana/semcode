@@ -26,7 +26,7 @@ from .settings import settings
 from .services import IndexerService, IndexingCallbacks
 from .storage import RepositoryRegistry
 
-app = typer.Typer(name="semcod", help="Semantic code search engine CLI.")
+app = typer.Typer(name="semcode", help="Semantic code search engine CLI.")
 configure_logging(enable_console=False)
 log = get_logger(__name__)
 console = Console()

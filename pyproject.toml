@@ -3,7 +3,7 @@ requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
-name = "semcod"
+name = "semcode"
 version = "0.1.0"
 description = "Semantic code search engine with repository ingestion, chunking, embeddings, Milvus storage, and multimodal querying."
 readme = "README.md"
@@ -58,21 +58,21 @@ ui = [
 ]
 
 [project.urls]
-Homepage = "https://example.com/semcod"
-Repository = "https://example.com/semcod/repo"
-Documentation = "https://example.com/semcod/docs"
+Homepage = "https://example.com/semcode"
+Repository = "https://example.com/semcode/repo"
+Documentation = "https://example.com/semcode/docs"
 
 [project.scripts]
-semcod = "semcod.cli:app"
-semcod-api = "semcod.api.main:run"
-semcod-streamlit = "semcod.frontend.cli:main"
-semcod-gradio = "semcod.frontend.gradio_app:run"
+semcode = "semcode.cli:app"
+semcode-api = "semcode.api.main:run"
+semcode-streamlit = "semcode.frontend.cli:main"
+semcode-gradio = "semcode.frontend.gradio_app:run"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/semcod"]
+packages = ["src/semcode"]
 
 [tool.uv]
 package = true

@@ -27,7 +27,7 @@ class RepositoryRecord:
     languages: Optional[List[str]] = None
     language_summary: Optional[Dict[str, int]] = None
     chunk_count: Optional[int] = None
-    milvus_collection: str = "semcod_chunks"
+    milvus_collection: str = "semcode_chunks"
 
 
 class RepositoryRegistry:

@@ -30,7 +30,7 @@ class MilvusVectorStore:
     """Thin wrapper around PyMilvus for our embedding workload."""
 
     def __init__(
-        self, collection_name: str = "semcod_chunks", dim: Optional[int] = None
+        self, collection_name: str = "semcode_chunks", dim: Optional[int] = None
     ) -> None:
         self.collection_name = collection_name
         self.dim = dim or settings.embedding_dimension

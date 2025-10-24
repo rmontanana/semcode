@@ -175,5 +175,5 @@ cython_debug/
 .pypirc
 
 # App configuration
-semcod_settings.toml
+semcode_settings.toml
 

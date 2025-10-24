@@ -1,6 +1,6 @@
 import pytest
 
-from semcod.embeddings.providers import EmbeddingProviderFactory
+from semcode.embeddings.providers import EmbeddingProviderFactory
 
 
 pytest.importorskip("langchain_community.embeddings")  # pragma: no cover

@@ -16,7 +16,7 @@ def require_api_key(api_key: str = Security(_api_key_header)) -> str | None:
     """
     Enforce optional API-key authentication.
 
-    If ``SEMCOD_API_KEY`` is configured the incoming request must provide the
+    If ``SEMCODE_API_KEY`` is configured the incoming request must provide the
     matching value in the ``X-API-Key`` header; otherwise the dependency is a
     no-op.
     """

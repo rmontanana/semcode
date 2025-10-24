@@ -13,17 +13,17 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock README.md LICENSE ./
-COPY semcod_settings.toml.sample ./semcod_settings.toml.sample
+COPY semcode_settings.toml.sample ./semcode_settings.toml.sample
 COPY src ./src
 COPY docs ./docs
 
 RUN pip install --upgrade pip setuptools wheel \
     && pip install .[ui]
 
-ENV SEMCOD_CONFIG_PATH=/etc/semcod/semcod_settings.toml
-COPY semcod_settings.toml.sample /etc/semcod/semcod_settings.toml
+ENV SEMCODE_CONFIG_PATH=/etc/semcode/semcode_settings.toml
+COPY semcode_settings.toml.sample /etc/semcode/semcode_settings.toml
 
 EXPOSE 8000
 EXPOSE 8501
 
-CMD ["semcod-api"]
+CMD ["semcode-api"]

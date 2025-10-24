@@ -3,7 +3,7 @@ version: "3.9"
 services:
   milvus:
     image: milvusdb/milvus:v2.4.4-20240709-d2da738
-    container_name: semcod-milvus
+    container_name: semcode-milvus
     command: ["milvus", "run", "standalone"]
     environment:
       MILVUS_LOGGER_CONSOLE_LEVEL: warn
@@ -16,29 +16,29 @@ services:
   api:
     build:
       context: .
-    command: semcod-api
+    command: semcode-api
     depends_on:
       - milvus
     environment:
-      SEMCOD_CONFIG_PATH: /config/semcod_settings.toml
+      SEMCODE_CONFIG_PATH: /config/semcode_settings.toml
     ports:
       - "8000:8000"
     volumes:
-      - ./semcod_settings.toml:/config/semcod_settings.toml:ro
+      - ./semcode_settings.toml:/config/semcode_settings.toml:ro
       - ./workspace:/workspace
 
   streamlit:
     build:
       context: .
-    command: semcod-streamlit
+    command: semcode-streamlit
     depends_on:
       - api
     environment:
-      SEMCOD_CONFIG_PATH: /config/semcod_settings.toml
+      SEMCODE_CONFIG_PATH: /config/semcode_settings.toml
     ports:
       - "8501:8501"
     volumes:
-      - ./semcod_settings.toml:/config/semcod_settings.toml:ro
+      - ./semcode_settings.toml:/config/semcode_settings.toml:ro
       - ./workspace:/workspace
 
 volumes:

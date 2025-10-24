@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from semcod.chunking import TreeSitterChunker
+from semcode.chunking import TreeSitterChunker
 
 try:
     import tree_sitter_languages  # type: ignore  # noqa: F401

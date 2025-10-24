@@ -2,10 +2,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from semcod.api import main as api_main
-from semcod.ingestion.manager import RepositoryMetadata
-from semcod.services.indexer import IndexingResult
-from semcod.storage import RepositoryRecord
+from semcode.api import main as api_main
+from semcode.ingestion.manager import RepositoryMetadata
+from semcode.services.indexer import IndexingResult
+from semcode.storage import RepositoryRecord
 
 
 def test_api_endpoints_with_stubs(tmp_path, monkeypatch):

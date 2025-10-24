@@ -1,6 +1,10 @@
-# Semantic Code Search Engine (semcod)
+# <img src="semcode_logo.svg" alt="logo" width="50"/> Semantic Code Search Engine (semcode)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](<https://opensource.org/licenses/MIT>)
+![Gitea Release](https://img.shields.io/gitea/v/release/rmontanana/semcode?gitea_url=https://gitea.rmontanana.es)
+![Gitea Last Commit](https://img.shields.io/gitea/last-commit/rmontanana/semcode?gitea_url=https://gitea.rmontanana.es&logo=gitea)
 
-`semcod` is a Python-first semantic code search engine that ingests C++ and Python repositories, splits source files into logical chunks with Tree-sitter + Code2Prompt heuristics, embeds those chunks with LangChain providers, stores vectors in Milvus, and serves natural-language answers or code suggestions through a FastAPI backend and Streamlit interface.
+
+`semcode` is a Python-first semantic code search engine that ingests C++ and Python repositories, splits source files into logical chunks with Tree-sitter + Code2Prompt heuristics, embeds those chunks with LangChain providers, stores vectors in Milvus, and serves natural-language answers or code suggestions through a FastAPI backend and Streamlit interface.
 
 ## Features
 - Repository ingestion CLI with workspace management and registry tracking.
@@ -26,7 +30,7 @@ repo ingest ──> tree-sitter chunker ──> embeddings ──> Milvus ──
 
 ## Project Layout
 ```
-src/semcod/
+src/semcode/
   api/           FastAPI app + request/response models
   chunking/      Tree-sitter + Code2Prompt adapters
   embeddings/    LangChain embedding factory
@@ -51,45 +55,45 @@ src/semcod/
    uv pip install -e .
    ```
 4. Copy `.env.example` and configure provider credentials. Minimum variables:
-   - `SEMCOD_WORKSPACE_ROOT` – location to mirror repositories.
+   - `SEMCODE_WORKSPACE_ROOT` – location to mirror repositories.
    - `OPENAI_API_KEY` (or alternative provider keys supported by LangChain).
-   - `SEMCOD_EMBEDDING_MODEL` – defaults to `text-embedding-3-large`; align with Milvus dimension.
-   - `SEMCOD_MILVUS_URI` plus optional username/password for Milvus.
-   - `SEMCOD_API_KEY` – optional API key enforced by the FastAPI layer and UIs.
-   - `SEMCOD_TELEMETRY_ENABLED=false` to disable in-memory telemetry snapshots (defaults to `true`).
+   - `SEMCODE_EMBEDDING_MODEL` – defaults to `text-embedding-3-large`; align with Milvus dimension.
+   - `SEMCODE_MILVUS_URI` plus optional username/password for Milvus.
+   - `SEMCODE_API_KEY` – optional API key enforced by the FastAPI layer and UIs.
+   - `SEMCODE_TELEMETRY_ENABLED=false` to disable in-memory telemetry snapshots (defaults to `true`).
 
 ### Milvus
-Run a local Milvus instance (Docker Compose or Zilliz Cloud). Update the `.env` file with connection details. The `IndexerService` will lazily create the `semcod_chunks` collection with an IVF_FLAT index on first run.
+Run a local Milvus instance (Docker Compose or Zilliz Cloud). Update the `.env` file with connection details. The `IndexerService` will lazily create the `semcode_chunks` collection with an IVF_FLAT index on first run.
 
 ### Tree-sitter Grammars
 Ensure `tree-sitter-languages` is installed (included in required dependencies). If you build custom grammars, update `TreeSitterChunker.SUPPORTED_LANGUAGES`.
 
 ### Choosing Embedding & LLM Providers
-- `SEMCOD_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, `jina`, or `llamacpp`.
-  - **OpenAI / LM Studio**: supply `SEMCOD_EMBEDDING_MODEL` and optionally `SEMCOD_EMBEDDING_API_BASE` (e.g., `http://localhost:1234/v1`) plus `SEMCOD_EMBEDDING_API_KEY`. LM Studio exposes an OpenAI-compatible API; set the key to any non-empty string (e.g., `lm-studio`).
-    - LM Studio and other OpenAI-compatible gateways may require `SEMCOD_EMBEDDING_USE_TIKTOKEN=false` so the client sends raw text rather than pre-tokenized input.
-  - **Jina**: set `SEMCOD_EMBEDDING_PROVIDER=jina`, choose a supported `SEMCOD_EMBEDDING_MODEL` (defaults to `jina-embeddings-v2-base-en`), and provide a `JINA_API_KEY` via the config `[providers]` block or environment. Update `SEMCOD_EMBEDDING_DIMENSION` to match the selected model (e.g., `768` for `jina-embeddings-v2-base-en`, `2048` for `jina-embeddings-v4`).
-  - **llama.cpp**: set `SEMCOD_EMBEDDING_LLAMACPP_MODEL_PATH` to the GGUF file and adjust ctx/threads/batch variables as needed.
+- `SEMCODE_EMBEDDING_PROVIDER`: `openai` (default), `lmstudio`, `jina`, or `llamacpp`.
+  - **OpenAI / LM Studio**: supply `SEMCODE_EMBEDDING_MODEL` and optionally `SEMCODE_EMBEDDING_API_BASE` (e.g., `http://localhost:1234/v1`) plus `SEMCODE_EMBEDDING_API_KEY`. LM Studio exposes an OpenAI-compatible API; set the key to any non-empty string (e.g., `lm-studio`).
+    - LM Studio and other OpenAI-compatible gateways may require `SEMCODE_EMBEDDING_USE_TIKTOKEN=false` so the client sends raw text rather than pre-tokenized input.
+  - **Jina**: set `SEMCODE_EMBEDDING_PROVIDER=jina`, choose a supported `SEMCODE_EMBEDDING_MODEL` (defaults to `jina-embeddings-v2-base-en`), and provide a `JINA_API_KEY` via the config `[providers]` block or environment. Update `SEMCODE_EMBEDDING_DIMENSION` to match the selected model (e.g., `768` for `jina-embeddings-v2-base-en`, `2048` for `jina-embeddings-v4`).
+  - **llama.cpp**: set `SEMCODE_EMBEDDING_LLAMACPP_MODEL_PATH` to the GGUF file and adjust ctx/threads/batch variables as needed.
   - Set `TOKENIZERS_PARALLELISM=false` when using Hugging Face-backed pipelines (e.g., llama.cpp bindings) to silence tokenizer fork warnings.
-- `SEMCOD_RAG_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
-  - **OpenAI / LM Studio**: configure `SEMCOD_RAG_MODEL`, `SEMCOD_RAG_API_BASE`, `SEMCOD_RAG_API_KEY`, and optional `SEMCOD_RAG_TEMPERATURE`.
-  - **llama.cpp**: set `SEMCOD_RAG_LLAMACPP_MODEL_PATH` (or reuse the embedding path), ctx/threads, and optionally temperature.
-- Ensure `SEMCOD_EMBEDDING_DIMENSION` matches the embedding model output (3072 for `text-embedding-3-large`; update if you switch providers).
+- `SEMCODE_RAG_PROVIDER`: `openai` (default), `lmstudio`, or `llamacpp`.
+  - **OpenAI / LM Studio**: configure `SEMCODE_RAG_MODEL`, `SEMCODE_RAG_API_BASE`, `SEMCODE_RAG_API_KEY`, and optional `SEMCODE_RAG_TEMPERATURE`.
+  - **llama.cpp**: set `SEMCODE_RAG_LLAMACPP_MODEL_PATH` (or reuse the embedding path), ctx/threads, and optionally temperature.
+- Ensure `SEMCODE_EMBEDDING_DIMENSION` matches the embedding model output (3072 for `text-embedding-3-large`; update if you switch providers).
 - Prompt tuning and fallbacks:
-  - Override `SEMCOD_RAG_SYSTEM_PROMPT` or supply a custom `SEMCOD_RAG_PROMPT_TEMPLATE` to tailor the assistant persona.
-  - Toggle summarisation fallback via `SEMCOD_RAG_FALLBACK_ENABLED` (default `true`) and adjust snippet coverage with `SEMCOD_RAG_FALLBACK_MAX_SOURCES` / `SEMCOD_RAG_FALLBACK_SUMMARY_SENTENCES`.
+  - Override `SEMCODE_RAG_SYSTEM_PROMPT` or supply a custom `SEMCODE_RAG_PROMPT_TEMPLATE` to tailor the assistant persona.
+  - Toggle summarisation fallback via `SEMCODE_RAG_FALLBACK_ENABLED` (default `true`) and adjust snippet coverage with `SEMCODE_RAG_FALLBACK_MAX_SOURCES` / `SEMCODE_RAG_FALLBACK_SUMMARY_SENTENCES`.
 
 ## CLI Usage
 ```bash
-semcod ingest --name mdlp --root /repo --include src,tests         # copy selected folders, chunk, embed, upsert
-semcod ingest --name mdlp --root /repo --include src,tests \
+semcode ingest --name mdlp --root /repo --include src,tests         # copy selected folders, chunk, embed, upsert
+semcode ingest --name mdlp --root /repo --include src,tests \
     --ignore vendor,venv                                           # append extra ignore patterns
-semcod ingest --name mdlp --root /repo --include src,tests -y       # bypass confirmation (non-interactive)
-semcod list                                                        # show ingested repositories + chunk stats
-semcod workspace --path ./new-workspace                            # change workspace location
+semcode ingest --name mdlp --root /repo --include src,tests -y       # bypass confirmation (non-interactive)
+semcode list                                                        # show ingested repositories + chunk stats
+semcode workspace --path ./new-workspace                            # change workspace location
 ```
 
-`semcod ingest` requires two arguments:
+`semcode ingest` requires two arguments:
 - `--name/-n`: logical label stored with every chunk and registry entry.
 - `--include/-I`: comma-separated folders (relative to `--root`, default `.`) copied into the workspace.
 
@@ -107,10 +111,10 @@ During ingestion a progress bar tracks copying, chunking, embedding, and upserti
 ## API
 Run the service:
 ```bash
-semcod-api
+semcode-api
 ```
 
-All endpoints (except `/healthz`) honor the optional `SEMCOD_API_KEY`. When set, include
+All endpoints (except `/healthz`) honor the optional `SEMCODE_API_KEY`. When set, include
 `X-API-Key: <value>` in requests.
 
 Endpoints:
@@ -119,20 +123,20 @@ Endpoints:
 - `POST /ingest` – body `{ "name": "mdlp", "root": "/repo", "include": ["src", "tests"], "force": false, "ignore": ["vendor"] }`; runs ingestion synchronously and returns repository metadata.
 - `POST /jobs/ingest` – same payload as `/ingest`, but enqueues an asynchronous job and returns a job descriptor immediately.
 - `GET /jobs` / `GET /jobs/{job_id}` – inspect active and completed ingestion tasks, including stage-by-stage progress.
-- `GET /telemetry` – snapshot of ingestion/query counters and recent events (disabled when `SEMCOD_TELEMETRY_ENABLED=false`).
+- `GET /telemetry` – snapshot of ingestion/query counters and recent events (disabled when `SEMCODE_TELEMETRY_ENABLED=false`).
 - `POST /query` – body `{ "question": "How do we initialize the cache?" }`; returns answer, supporting sources, and metadata describing whether the response came from the LLM or the summarisation fallback.
 
 ## Streamlit Frontend
 ```bash
-semcod-streamlit
+semcode-streamlit
 ```
 Use the sidebar to set the API root/key, filter repositories or languages, review query history, and compare result snippets via the diff view. The main panel displays answers, highlights fallback usage, and lists filtered sources.
-Both UI clients honour the `[frontend].request_timeout` value in `semcod_settings.toml`, so increase it if long-running queries trigger HTTP timeouts.
+Both UI clients honour the `[frontend].request_timeout` value in `semcode_settings.toml`, so increase it if long-running queries trigger HTTP timeouts.
 
 ## Gradio Frontend (optional)
 ```bash
 uv pip install .[ui]  # installs gradio if not already available
-semcod-gradio
+semcode-gradio
 ```
 Launches a browser-based alternative UI with API configuration fields, optional repo/language filters, and a tabular view of retrieved snippets.
 
@@ -146,13 +150,13 @@ The repository ships with a convenience `Makefile` to streamline local workflows
 - `make clean` – remove `__pycache__` artefacts.
 
 ## Docker Compose
-`docker-compose.yml` provisions Milvus, the API, and the Streamlit frontend. Copy `semcod_settings.toml.sample`
-to `semcod_settings.toml`, adjust credentials (MILVUS URI, embedding provider keys), then run:
+`docker-compose.yml` provisions Milvus, the API, and the Streamlit frontend. Copy `semcode_settings.toml.sample`
+to `semcode_settings.toml`, adjust credentials (MILVUS URI, embedding provider keys), then run:
 ```bash
 docker compose up --build
 ```
 The API listens on `localhost:8000` and the Streamlit UI on `localhost:8501`, both reading the mounted
-`semcod_settings.toml` and writing to the shared `workspace/` directory.
+`semcode_settings.toml` and writing to the shared `workspace/` directory.
 
 ## Continuous Integration
 `.github/workflows/ci.yml` runs on every push/PR: install (via `make install-ui`), lint, type-check, unit tests,

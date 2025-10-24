@@ -6,9 +6,9 @@ PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
 RUFF := $(VENV)/bin/ruff
 MYPY := $(VENV)/bin/mypy
-SEMCOD_API_BIN := $(VENV)/bin/semcod-api
-SEMCOD_STREAMLIT_BIN := $(VENV)/bin/semcod-streamlit
-SEMCOD_GRADIO_BIN := $(VENV)/bin/semcod-gradio
+SEMCODE_API_BIN := $(VENV)/bin/semcode-api
+SEMCODE_STREAMLIT_BIN := $(VENV)/bin/semcode-streamlit
+SEMCODE_GRADIO_BIN := $(VENV)/bin/semcode-gradio
 API_HOST ?= 0.0.0.0
 API_PORT ?= 8000
 
@@ -21,7 +21,7 @@ YELLOW := \033[33m
 RESET := \033[0m
 
 help:
-	@printf "\n${CYAN}🚀  semcod Makefile Commands${RESET}\n"
+	@printf "\n${CYAN}🚀  semcode Makefile Commands${RESET}\n"
 	@printf "${PURPLE}────────────────────────────────────${RESET}\n"
 	@printf "${GREEN}🧱  make install          ${RESET}- create .venv and install runtime + dev deps\n"
 	@printf "${GREEN}🧱  make install-ui       ${RESET}- install with UI extras (Streamlit/Gradio)\n"
@@ -35,7 +35,7 @@ help:
 	@printf "${GREEN}🌐  make run-api          ${RESET}- launch FastAPI (override host/port via API_HOST/API_PORT)\n"
 	@printf "${GREEN}📊  make run-streamlit    ${RESET}- start Streamlit frontend\n"
 	@printf "${GREEN}🎛️  make run-gradio       ${RESET}- start Gradio UI\n"
-	@printf "\n${YELLOW}Tip:${RESET} export SEMCOD_CONFIG_PATH or edit semcod_settings.toml before running services.\n\n"
+	@printf "\n${YELLOW}Tip:${RESET} edit semcode_settings.toml before running services.\n\n"
 
 $(VENV)/bin/python:
 	$(PYTHON) -m venv $(VENV)
@@ -65,14 +65,14 @@ test-unit: $(PYTEST)
 test-integration: $(PYTEST)
 	$(PYTEST) tests/integration
 
-run-api: $(SEMCOD_API_BIN)
-	SEMCOD_API_HOST=$(API_HOST) SEMCOD_API_PORT=$(API_PORT) $(SEMCOD_API_BIN)
+run-api: $(SEMCODE_API_BIN)
+	SEMCODE_API_HOST=$(API_HOST) SEMCODE_API_PORT=$(API_PORT) $(SEMCODE_API_BIN)
 
-run-streamlit: $(SEMCOD_STREAMLIT_BIN)
-	$(SEMCOD_STREAMLIT_BIN)
+run-streamlit: $(SEMCODE_STREAMLIT_BIN)
+	$(SEMCODE_STREAMLIT_BIN)
 
-run-gradio: $(SEMCOD_GRADIO_BIN)
-	$(SEMCOD_GRADIO_BIN)
+run-gradio: $(SEMCODE_GRADIO_BIN)
+	$(SEMCODE_GRADIO_BIN)
 
 clean:
 	find . -name "__pycache__" -type d -prune -exec rm -rf {} +; \

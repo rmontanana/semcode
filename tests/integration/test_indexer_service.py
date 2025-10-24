@@ -1,7 +1,7 @@
-from semcod.ingestion import RepositoryIngestionManager
-from semcod.services import IndexerService
-from semcod.storage import RepositoryRegistry
-from semcod.settings import settings
+from semcode.ingestion import RepositoryIngestionManager
+from semcode.services import IndexerService
+from semcode.storage import RepositoryRegistry
+from semcode.settings import settings
 
 
 class DummyEmbedding:
@@ -14,7 +14,7 @@ class DummyEmbedding:
 
 class DummyVectorStore:
     def __init__(self) -> None:
-        self.collection_name = "test_semcod_chunks"
+        self.collection_name = "test_semcode_chunks"
         self.payloads = []
         self.connected = False
 
@@ -33,7 +33,7 @@ def test_indexer_service_integration(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
     monkeypatch.setattr(settings, "workspace_root", workspace)
     monkeypatch.setattr(
-        "semcod.services.indexer.EmbeddingProviderFactory.create",
+        "semcode.services.indexer.EmbeddingProviderFactory.create",
         lambda provider=None, model=None: DummyEmbedding(),
     )
 

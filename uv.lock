@@ -3967,7 +3967,7 @@ wheels = [
 ]
 
 [[package]]
-name = "semcod"
+name = "semcode"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
