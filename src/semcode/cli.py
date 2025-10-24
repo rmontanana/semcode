@@ -154,7 +154,7 @@ def ingest(
     """Ingest one or more subdirectories from a root path."""
     include_dirs = [name.strip() for name in include.split(",") if name.strip()]
     user_ignore = [name.strip() for name in (ignore or "").split(",") if name.strip()]
-    ignore_dirs = list(dict.fromkeys(DEFAULT_IGNORE_PATTERNS + tuple(user_ignore)))
+    ignore_dirs = list(dict.fromkeys((*DEFAULT_IGNORE_PATTERNS, *user_ignore)))
 
     if not root.exists():
         typer.echo(f"[ERROR] Root path not found: {root}")

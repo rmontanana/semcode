@@ -27,6 +27,12 @@ API_KEY_HEADER = "X-API-Key"
 HISTORY_LIMIT = 20
 
 
+def _rerun() -> None:
+    rerun = getattr(st, "experimental_rerun", None)
+    if callable(rerun):
+        rerun()
+
+
 def _request(
     method: str,
     url: str,
@@ -88,7 +94,7 @@ def _render_history() -> None:
             if st.button(f"🔁 {label}", key=f"history-{idx}"):
                 st.session_state["last_question"] = entry["question"]
                 st.session_state["active_result"] = entry["result"]
-                st.experimental_rerun()
+                _rerun()
 
 
 def _filter_sources(
@@ -202,7 +208,7 @@ def run() -> None:
             st.session_state["query_history"] = []
             st.session_state["active_result"] = None
             st.session_state["last_question"] = ""
-            st.experimental_rerun()
+            _rerun()
 
     if trigger_search and question:
         with st.spinner("Running semantic search..."):

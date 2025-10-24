@@ -12,7 +12,7 @@ import fnmatch
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List, Optional, Sequence
+from typing import Callable, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 from ..logger import get_logger
 from ..settings import settings
@@ -99,13 +99,9 @@ class RepositoryIngestionManager:
             resolved_sources.append(src.resolve())
 
         target = self.workspace / repo_name
-        combined_ignores = list(
-            dict.fromkeys(
-                DEFAULT_IGNORE_PATTERNS
-                + tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
-            )
-        )
-        ignore_patterns = tuple(combined_ignores)
+        user_ignores = tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
+        combined: Tuple[str, ...] = (*DEFAULT_IGNORE_PATTERNS, *user_ignores)
+        ignore_patterns = tuple(dict.fromkeys(combined))
 
         if target.exists():
             if not force:

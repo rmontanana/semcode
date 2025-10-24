@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 try:  # Python 3.11+
     import tomllib  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # pragma: no cover - fallback for older interpreters
-    import tomli as tomllib  # type: ignore[attr-defined]
+    import tomli as tomllib  # type: ignore[attr-defined, import-not-found, no-redef]
 
 from pydantic import AnyHttpUrl, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict

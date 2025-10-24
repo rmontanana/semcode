@@ -13,28 +13,29 @@ from typing import Optional
 
 import structlog
 from structlog.stdlib import BoundLogger, ProcessorFormatter
+from structlog.typing import Processor
 
-_PRE_CHAIN = [
+_PRE_CHAIN: tuple[Processor, ...] = (
     structlog.stdlib.add_log_level,
     structlog.stdlib.add_logger_name,
     structlog.stdlib.PositionalArgumentsFormatter(),
     structlog.processors.StackInfoRenderer(),
     structlog.processors.format_exc_info,
     structlog.processors.TimeStamper(fmt="iso"),
-]
+)
 
 
 def _configure_structlog(min_level: int) -> None:
     """Bridge structlog into the standard logging framework."""
     structlog.configure(
-        processors=_PRE_CHAIN + [ProcessorFormatter.wrap_for_formatter],
+        processors=_PRE_CHAIN + (ProcessorFormatter.wrap_for_formatter,),
         wrapper_class=structlog.make_filtering_bound_logger(min_level),
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
 
-def _build_formatter(renderer) -> ProcessorFormatter:
+def _build_formatter(renderer: Processor) -> ProcessorFormatter:
     return ProcessorFormatter(processor=renderer, foreign_pre_chain=_PRE_CHAIN)
 
 

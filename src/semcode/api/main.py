@@ -7,7 +7,7 @@ from __future__ import annotations
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional, cast
 
 import uvicorn
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
@@ -68,7 +68,7 @@ class JobResponse(BaseModel):
     type: str
     status: str
     stage: Optional[str]
-    progress: Dict[str, Any]
+    progress: Mapping[str, Any]
     result: Optional[RepoResponse]
     error: Optional[str]
     duration_ms: float
@@ -77,9 +77,9 @@ class JobResponse(BaseModel):
 
 
 class TelemetryResponse(BaseModel):
-    ingest: Dict[str, Any]
-    query: Dict[str, Any]
-    recent_events: List[Dict[str, Any]]
+    ingest: Mapping[str, Any]
+    query: Mapping[str, Any]
+    recent_events: List[Mapping[str, Any]]
 
 
 @app.get("/healthz")
@@ -193,7 +193,7 @@ def telemetry_snapshot(enabled: bool = Depends(telemetry_enabled)) -> TelemetryR
             status_code=status.HTTP_404_NOT_FOUND, detail="Telemetry disabled"
         )
     data = telemetry.snapshot()
-    return TelemetryResponse(**data)
+    return TelemetryResponse.model_validate(data)
 
 
 @app.post(
@@ -302,23 +302,33 @@ def _run_ingest_job(job_id: str, payload: Dict[str, Any]) -> None:
             languages=result.repository.languages,
             chunk_count=result.chunk_count,
         )
-        job_manager.complete(job_id, repo_payload.dict())
-        metadata = {"job_id": job_id, "repo": repo_payload.name}
+        job_manager.complete(
+            job_id, cast(Dict[str, object], repo_payload.model_dump())
+        )
+        metadata: Dict[str, Any] = {"job_id": job_id, "repo": repo_payload.name}
         _record_ingest_telemetry(start_time, ok=True, metadata=metadata)
     except HTTPException as exc:
         job_manager.fail(
             job_id, error=exc.detail if isinstance(exc.detail, str) else str(exc.detail)
         )
-        metadata = {"job_id": job_id, "repo": payload.get("name"), "error": exc.detail}
+        metadata = {
+            "job_id": job_id,
+            "repo": payload.get("name"),
+            "error": exc.detail,
+        }
         _record_ingest_telemetry(start_time, ok=False, metadata=metadata)
     except Exception as exc:  # pragma: no cover - defensive catch
         job_manager.fail(job_id, error=str(exc))
-        metadata = {"job_id": job_id, "repo": payload.get("name"), "error": str(exc)}
+        metadata = {
+            "job_id": job_id,
+            "repo": payload.get("name"),
+            "error": str(exc),
+        }
         _record_ingest_telemetry(start_time, ok=False, metadata=metadata)
 
 
 def _job_to_response(job: JobInfo) -> JobResponse:
-    result = RepoResponse(**job.result) if job.result else None
+    result = RepoResponse(**cast(Dict[str, Any], job.result)) if job.result else None
     return JobResponse(
         id=job.id,
         type=job.type,
