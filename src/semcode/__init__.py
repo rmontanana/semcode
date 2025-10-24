@@ -1,5 +1,5 @@
 """Semantic Code Search Engine package."""
 
-__all__ = ["__version__"]
+from .version import __version__, get_version
 
-__version__ = "0.1.0"
+__all__ = ["__version__", "get_version"]

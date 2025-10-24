@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "semcode"
-version = "0.1.0"
+version = "1.0.0"
 description = "Semantic code search engine with repository ingestion, chunking, embeddings, Milvus storage, and multimodal querying."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -73,6 +73,7 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/semcode"]
+include = ["src/semcode/VERSION"]
 
 [tool.uv]
 package = true

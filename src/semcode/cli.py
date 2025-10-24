@@ -25,6 +25,7 @@ from .logger import configure_logging, get_logger, redirect_logging_to_file
 from .settings import settings
 from .services import IndexerService, IndexingCallbacks
 from .storage import RepositoryRegistry
+from .version import get_version
 
 app = typer.Typer(name="semcode", help="Semantic code search engine CLI.")
 configure_logging(enable_console=False)
@@ -106,6 +107,13 @@ def _render_directory_tree(
 
     walk(root, "", 0)
     return "\n".join(lines)
+
+
+@app.command()
+def version() -> None:
+    """Display the installed semcode version."""
+
+    typer.echo(f"semcode {get_version()}")
 
 
 @app.command()
