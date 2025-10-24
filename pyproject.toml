@@ -75,5 +75,3 @@ allow-direct-references = true
 packages = ["src/semcode"]
 include = ["src/semcode/VERSION"]
 
-[tool.uv]
-package = true

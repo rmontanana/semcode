@@ -8,7 +8,7 @@ later phases.
 
 from __future__ import annotations
 
-from typing import Callable, Iterable, List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence
 
 from pymilvus import (  # type: ignore
     Collection,

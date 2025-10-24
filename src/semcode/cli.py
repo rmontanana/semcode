@@ -4,7 +4,6 @@ Command line interface for the semantic code search engine.
 
 from __future__ import annotations
 
-import logging
 import os
 from fnmatch import fnmatch
 from pathlib import Path

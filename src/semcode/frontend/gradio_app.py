@@ -78,7 +78,9 @@ def run() -> None:
 
         sources = result.get("sources", [])
         repo_filters = {r.strip() for r in repo_filter.split(",") if r.strip()}
-        language_filters = {l.strip() for l in language_filter.split(",") if l.strip()}
+        language_filters = {
+            lang.strip() for lang in language_filter.split(",") if lang.strip()
+        }
 
         def _matches(source: Dict) -> bool:
             repo = source.get("repo")
