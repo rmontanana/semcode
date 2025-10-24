@@ -49,7 +49,7 @@ class IndexerService:
         self.ingestion_manager = ingestion_manager or RepositoryIngestionManager()
         self.registry = registry or RepositoryRegistry()
         self.vector_store = vector_store or MilvusVectorStore()
-        self.embedding_client = EmbeddingProviderFactory.create()
+        self._embedding_client = None
         self._connected = False
         if auto_connect:
             self._connected = self._ensure_connection()
@@ -147,7 +147,7 @@ class IndexerService:
             batch_size = self._embedding_batch_size()
             for start in range(0, total, batch_size):
                 batch = contents[start : start + batch_size]
-                vectors.extend(self.embedding_client.embed_documents(batch))
+                vectors.extend(self._embedding_client_instance().embed_documents(batch))
                 if progress:
                     progress(len(vectors), total)
         payloads: List[EmbeddingPayload] = []
@@ -176,6 +176,11 @@ class IndexerService:
     def _embedding_batch_size() -> int:
         size = getattr(settings, "embedding_batch_size", 64)
         return max(1, size)
+
+    def _embedding_client_instance(self):
+        if self._embedding_client is None:
+            self._embedding_client = EmbeddingProviderFactory.create()
+        return self._embedding_client
 
     @staticmethod
     def _make_chunk_id(repo: str, path: Path, start: int, end: int) -> str:

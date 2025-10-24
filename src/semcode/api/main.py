@@ -302,9 +302,7 @@ def _run_ingest_job(job_id: str, payload: Dict[str, Any]) -> None:
             languages=result.repository.languages,
             chunk_count=result.chunk_count,
         )
-        job_manager.complete(
-            job_id, cast(Dict[str, object], repo_payload.model_dump())
-        )
+        job_manager.complete(job_id, cast(Dict[str, object], repo_payload.model_dump()))
         metadata: Dict[str, Any] = {"job_id": job_id, "repo": repo_payload.name}
         _record_ingest_telemetry(start_time, ok=True, metadata=metadata)
     except HTTPException as exc:

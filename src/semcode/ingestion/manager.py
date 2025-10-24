@@ -99,7 +99,9 @@ class RepositoryIngestionManager:
             resolved_sources.append(src.resolve())
 
         target = self.workspace / repo_name
-        user_ignores = tuple(name.strip() for name in (ignore_dirs or []) if name.strip())
+        user_ignores = tuple(
+            name.strip() for name in (ignore_dirs or []) if name.strip()
+        )
         combined: Tuple[str, ...] = (*DEFAULT_IGNORE_PATTERNS, *user_ignores)
         ignore_patterns = tuple(dict.fromkeys(combined))
 

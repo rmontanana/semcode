@@ -57,7 +57,7 @@ typecheck: $(MYPY)
 	$(MYPY) src
 
 test: $(PYTEST)
-	$(PYTEST)
+	$(PYTEST) tests
 
 test-unit: $(PYTEST)
 	$(PYTEST) tests -k "not integration"
