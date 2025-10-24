@@ -26,6 +26,7 @@ model = "gpt-4o"
 api_base = ""
 api_key = ""
 temperature = 0.0
+max_context_sources = 15
 
 [rag.llamacpp]
 model_path = ""

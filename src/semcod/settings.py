@@ -64,6 +64,7 @@ class AppSettings(BaseSettings):
     )
     rag_prompt_template: Optional[str] = None
     rag_fallback_enabled: bool = True
+    rag_max_context_sources: int = 5
     rag_fallback_max_sources: int = 3
     rag_fallback_summary_sentences: int = 3
     rag_llamacpp_model_path: Optional[Path] = None
@@ -176,6 +177,8 @@ def _flatten_config(raw: Dict[str, Any]) -> Dict[str, Any]:
             data["rag_prompt_template"] = _blank_to_none(rag["prompt_template"])
         if "fallback_enabled" in rag:
             data["rag_fallback_enabled"] = bool(rag["fallback_enabled"])
+        if "max_context_sources" in rag:
+            data["rag_max_context_sources"] = rag["max_context_sources"]
         if "fallback_max_sources" in rag:
             data["rag_fallback_max_sources"] = rag["fallback_max_sources"]
         if "fallback_summary_sentences" in rag:

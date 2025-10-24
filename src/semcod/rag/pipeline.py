@@ -101,7 +101,7 @@ class SemanticSearchPipeline:
             self._vector_connected = True
 
         vector = self._embed_query(question)
-        top_k = max(5, settings.rag_fallback_max_sources)
+        top_k = max(1, settings.rag_max_context_sources)
         try:
             results = self.vector_store.search(vector, top_k=top_k)
         except Exception as exc:  # pragma: no cover - retrieval issues
@@ -218,16 +218,18 @@ class SemanticSearchPipeline:
     def _fallback_answer(
         self, question: str, documents: List[Dict[str, Any]], error: Exception
     ) -> Dict[str, Any]:
+        max_sources = max(1, settings.rag_fallback_max_sources)
+        limited_docs = documents[:max_sources]
         if not documents:
             answer = (
                 "I could not retrieve any relevant context for your question. "
                 "Verify that the repository has been ingested successfully."
             )
         else:
-            answer = self._summarize_documents(question, documents)
+            answer = self._summarize_documents(question, limited_docs)
         return {
             "answer": answer,
-            "sources": self._docs_to_sources(documents),
+            "sources": self._docs_to_sources(limited_docs),
             "meta": {"fallback_used": True, "reason": str(error)},
         }
 
