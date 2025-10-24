@@ -2,6 +2,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](<https://opensource.org/licenses/MIT>)
 ![Gitea Release](https://img.shields.io/gitea/v/release/rmontanana/semcode?gitea_url=https://gitea.rmontanana.es)
 ![Gitea Last Commit](https://img.shields.io/gitea/last-commit/rmontanana/semcode?gitea_url=https://gitea.rmontanana.es&logo=gitea)
+![Gitea ci](https://gitea.rmontanana.es/rmontanana/semcode/actions/workflows/ci.yml/badge.svg?branch=main)
 
 
 `semcode` is a Python-first semantic code search engine that ingests C++ and Python repositories, splits source files into logical chunks with Tree-sitter + Code2Prompt heuristics, embeds those chunks with LangChain providers, stores vectors in Milvus, and serves natural-language answers or code suggestions through a FastAPI backend and Streamlit interface.
