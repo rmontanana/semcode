@@ -42,6 +42,20 @@ jobs:
         if: steps.cache-venv.outputs.cache-hit != 'true'
         run: make install-ui
 
+      - name: Configure application settings
+        run: |
+          cat <<EOF > semcode_settings.toml
+          [embedding]
+          provider = "openai"
+          api_key = "${OPENAI_API_KEY}"
+
+          [rag]
+          provider = "openai"
+          api_key = "${OPENAI_API_KEY}"
+          EOF
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: Lint
         run: make lint
 

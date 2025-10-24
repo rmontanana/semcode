@@ -32,7 +32,7 @@ class SemanticSearchPipeline:
         fallback_enabled: bool | None = None,
     ) -> None:
         self.collection_name = collection_name
-        self.embedding: Embeddings = EmbeddingProviderFactory.create()
+        self._embedding: Embeddings | None = None
         self.llm_model = llm_model or settings.rag_model
         self.fallback_enabled = (
             fallback_enabled
@@ -169,9 +169,10 @@ class SemanticSearchPipeline:
         }
 
     def _embed_query(self, question: str) -> List[float]:
-        if hasattr(self.embedding, "embed_query"):
-            return self.embedding.embed_query(question)
-        return self.embedding.embed_documents([question])[0]
+        embedding = self._embedding_client()
+        if hasattr(embedding, "embed_query"):
+            return embedding.embed_query(question)
+        return embedding.embed_documents([question])[0]
 
     # ------------------------------------------------------------------
     # Prompt + formatting helpers
@@ -293,3 +294,8 @@ class SemanticSearchPipeline:
             )
 
         raise NotImplementedError(f"RAG provider not yet supported: {provider}")
+
+    def _embedding_client(self) -> Embeddings:
+        if self._embedding is None:
+            self._embedding = EmbeddingProviderFactory.create()
+        return self._embedding
