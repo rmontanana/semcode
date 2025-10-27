@@ -25,7 +25,6 @@ dependencies = [
   "langchain-community>=0.2.0",
   "langchain-openai>=0.1.0",
   "langsmith>=0.1.56",
-  #"llama-cpp-python>=0.2.82",
   "openai>=1.30.0",
   "pydantic>=2.6.4",
   "pydantic-settings>=2.2.1",
